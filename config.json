@@ -1,0 +1,50 @@
+{
+  "app": {
+    "name": "seju-lite",
+    "env": "dev",
+    "logLevel": "INFO"
+  },
+  "agent": {
+    "name": "SejuLite",
+    "systemPrompt": "You are a concise and helpful Telegram AI assistant.",
+    "maxIterations": 8,
+    "maxHistory": 12,
+    "workspace": "./workspace",
+    "enableMemory": true,
+    "enableSkills": true,
+    "enableTools": true
+  },
+  "provider": {
+    "kind": "gemini",
+    "apiKey": "${GEMINI_API_KEY}",
+    "model": "gemini-2.5-flash",
+    "temperature": 0.3,
+    "maxOutputTokens": 1200
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "token": "${TELEGRAM_BOT_TOKEN}",
+      "allowFrom": ["123456789"],
+      "allowGroups": false,
+      "groupPolicy": "mention"
+    }
+  },
+  "tools": {
+    "time": {
+      "enabled": true
+    },
+    "readFile": {
+      "enabled": true,
+      "rootDir": "./workspace"
+    },
+    "shell": {
+      "enabled": false,
+      "allowedCommands": ["pwd", "ls", "cat"],
+      "timeoutSec": 8
+    }
+  },
+  "storage": {
+    "sessionFile": "./workspace/sessions.json"
+  }
+}
