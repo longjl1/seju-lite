@@ -6,11 +6,13 @@ class SkillsLoader:
         self.workspace = workspace
         self.skills_dir = workspace / "skills"
 
+    # get skills list
     def list_skills(self) -> list[dict]:
         items = []
         if not self.skills_dir.exists():
             return items
-
+        
+        # iterate files under the root
         for skill_dir in self.skills_dir.iterdir():
             if skill_dir.is_dir():
                 skill_file = skill_dir / "SKILL.md"
@@ -21,6 +23,7 @@ class SkillsLoader:
                     })
         return items
 
+    # 按名字读取技能
     def load_skill(self, name: str) -> str | None:
         path = self.skills_dir / name / "SKILL.md"
         if path.exists():

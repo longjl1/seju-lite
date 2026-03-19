@@ -13,13 +13,16 @@ class MemoryStore:
             return self.memory_file.read_text(encoding="utf-8")
         return ""
 
+    # write long-term memory
     def write_long_term(self, content: str) -> None:
         self.memory_file.write_text(content, encoding="utf-8")
 
+    # add to history 
     def append_history(self, entry: str) -> None:
         with open(self.history_file, "a", encoding="utf-8") as f:
             f.write(entry.rstrip() + "\n\n")
 
+    # get a hist -> prompt 
     def get_memory_context(self) -> str:
         memory = self.read_long_term()
         return f"## Long-term Memory\n{memory}" if memory else ""

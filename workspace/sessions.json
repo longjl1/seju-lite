@@ -1,0 +1,108 @@
+{
+  "telegram:6636346894": {
+    "key": "telegram:6636346894",
+    "messages": [
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\nHi",
+        "timestamp": "2026-03-19T23:29:26.585797"
+      },
+      {
+        "role": "assistant",
+        "content": "Hello! How can I help you today?",
+        "timestamp": "2026-03-19T23:29:26.585803"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\nHi",
+        "timestamp": "2026-03-19T23:29:29.519436"
+      },
+      {
+        "role": "assistant",
+        "content": "Hello again! How may I assist you?",
+        "timestamp": "2026-03-19T23:29:29.519441"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\nWho are you",
+        "timestamp": "2026-03-19T23:29:42.206927"
+      },
+      {
+        "role": "assistant",
+        "content": "I am a helpful AI assistant, designed to assist you on Telegram.",
+        "timestamp": "2026-03-19T23:29:42.206932"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\n你叫什么名字",
+        "timestamp": "2026-03-19T23:30:26.642513"
+      },
+      {
+        "role": "assistant",
+        "content": "我没有名字。",
+        "timestamp": "2026-03-19T23:30:26.642517"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\n你是什么模型？",
+        "timestamp": "2026-03-19T23:30:36.398802"
+      },
+      {
+        "role": "assistant",
+        "content": "我是一个大型语言模型，由 Google 训练。",
+        "timestamp": "2026-03-19T23:30:36.398807"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\nGemini flash？",
+        "timestamp": "2026-03-19T23:30:47.838476"
+      },
+      {
+        "role": "assistant",
+        "content": "我是一个大型语言模型。",
+        "timestamp": "2026-03-19T23:30:47.838480"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\n现在几点？",
+        "timestamp": "2026-03-19T23:31:05.600822"
+      },
+      {
+        "role": "assistant",
+        "content": "我无法提供实时时间。",
+        "timestamp": "2026-03-19T23:31:05.600827"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\nwhat time is rn？",
+        "timestamp": "2026-03-19T23:31:23.079637"
+      },
+      {
+        "role": "assistant",
+        "content": "我无法提供实时信息。",
+        "timestamp": "2026-03-19T23:31:23.079641"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\n请调用time工具告诉我时间",
+        "timestamp": "2026-03-19T23:34:16.506453"
+      },
+      {
+        "role": "assistant",
+        "content": "我无法提供实时信息，因此无法调用时间工具。",
+        "timestamp": "2026-03-19T23:34:16.506458"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\n讲个睡前故事",
+        "timestamp": "2026-03-19T23:34:48.428334"
+      },
+      {
+        "role": "assistant",
+        "content": "从前，在一个遥远的小村庄里，住着一只名叫小星星的小兔子。小星星最喜欢做的事情，就是在夜晚来临的时候，躺在柔软的草地上，数天上的星星。\n\n有一天晚上，小星星发现有一颗小星星特别亮，它闪烁着温柔的光芒，仿佛在对它微笑。小星星闭上眼睛，许了一个愿望：“我希望所有的孩子都能做个甜甜的梦。”\n\n当它再次睁开眼睛时，那颗小星星的光芒变得更加柔和，轻轻地洒在小星星身上，让它感到无比的温暖和安心。小星星知道，它的愿望被听到了。\n\n它打了个小小的哈欠，依偎在妈妈的身边，进入了甜美的梦乡。在梦里，它看到所有的孩子都带着幸福的笑容，睡得香甜。\n\n晚安，愿你也有个甜甜的梦。",
+        "timestamp": "2026-03-19T23:34:48.428339"
+      }
+    ],
+    "updated_at": "2026-03-19T23:34:48.428340"
+  }
+}

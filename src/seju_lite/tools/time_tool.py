@@ -1,8 +1,10 @@
 from datetime import datetime
 
 class TimeTool:
-    
+    # tool's name
     name = "time"
+
+    # schema
     definition = {
         "type": "function",
         "function": {
@@ -17,4 +19,4 @@ class TimeTool:
     }
 
     async def run(self) -> str:
-        return datetime.now().isoformat()
+        return datetime.now().isoformat() # return datetime string

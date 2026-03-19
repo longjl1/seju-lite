@@ -16,8 +16,17 @@ class TelegramChannel:
             return
 
         user_id = str(update.effective_user.id)
-        if self.allow_from and user_id not in self.allow_from:
-            return
+        username = (update.effective_user.username or "").strip()
+        username_with_at = f"@{username}" if username else ""
+        # allowFrom supports numeric user id and username (with or without @)
+        if self.allow_from:
+            allowed = (
+                user_id in self.allow_from
+                or (username and username in self.allow_from)
+                or (username_with_at and username_with_at in self.allow_from)
+            )
+            if not allowed:
+                return
 
         text = update.effective_message.text or ""
         inbound = InboundMessage(
@@ -29,8 +38,18 @@ class TelegramChannel:
         )
         await self.bus.publish_inbound(inbound)
 
+    async def on_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if update.effective_chat:
+            await self.app.bot.send_message(
+                chat_id=str(update.effective_chat.id),
+                text="Bot is online. Send any text message to start chatting.",
+            )
+
     async def start(self):
+        # add handler
+        self.app.add_handler(CommandHandler("start", self.on_start))
         self.app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.on_message))
+        # start app
         await self.app.initialize()
         await self.app.start()
         await self.app.updater.start_polling()

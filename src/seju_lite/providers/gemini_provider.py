@@ -1,6 +1,11 @@
+import asyncio
 import json
+from typing import Any
+
 from google import genai
-from seju_lite.providers.base import LLMProvider, LLMResponse
+from google.genai import types
+
+from seju_lite.providers.base import LLMProvider, LLMResponse, ToolCall
 
 
 class GeminiProvider(LLMProvider):
@@ -16,35 +21,149 @@ class GeminiProvider(LLMProvider):
         self.temperature = temperature
         self.max_output_tokens = max_output_tokens
 
-    def _flatten_messages(self, messages: list[dict]) -> str:
-        chunks = []
+
+    def _build_gemini_tools(self, tools: list[dict] | None) -> list[types.Tool] | None:
+        if not tools:
+            return None
+
+        declarations: list[types.FunctionDeclaration] = []
+        for tool in tools:
+            fn = tool.get("function") or {}
+            name = fn.get("name")
+            if not name:
+                continue
+
+            parameters = fn.get("parameters") or {"type": "object", "properties": {}}
+            declarations.append(
+                types.FunctionDeclaration(
+                    name=name,
+                    description=fn.get("description"),
+                    parametersJsonSchema=parameters,
+                )
+            )
+
+        if not declarations:
+            return None
+        return [types.Tool(functionDeclarations=declarations)]
+
+    def _parse_tool_args(self, raw_args: Any) -> dict[str, Any]:
+        if isinstance(raw_args, dict):
+            return raw_args
+        if isinstance(raw_args, str):
+            try:
+                parsed = json.loads(raw_args)
+                return parsed if isinstance(parsed, dict) else {}
+            except json.JSONDecodeError:
+                return {}
+        return {}
+
+    def _build_contents(self, messages: list[dict]) -> tuple[str | None, list[types.Content]]:
+        system_parts: list[str] = []
+        contents: list[types.Content] = []
+
         for m in messages:
             role = m.get("role", "user")
-            content = m.get("content", "")
-            if not content:
+
+            if role == "system":
+                text = m.get("content")
+                if text:
+                    system_parts.append(str(text))
                 continue
-            chunks.append(f"[{role.upper()}]\n{content}")
-        return "\n\n".join(chunks)
+
+            if role == "assistant":
+                parts: list[types.Part] = []
+                text = m.get("content")
+                if text:
+                    parts.append(types.Part.from_text(text=str(text)))
+
+                for tc in m.get("tool_calls") or []:
+                    fn = tc.get("function") or {}
+                    name = fn.get("name")
+                    if not name:
+                        continue
+                    args = self._parse_tool_args(fn.get("arguments"))
+                    parts.append(types.Part.from_function_call(name=name, args=args))
+
+                if parts:
+                    contents.append(types.Content(role="model", parts=parts))
+                continue
+
+            if role == "tool":
+                name = m.get("name")
+                if name:
+                    result = m.get("content")
+                    contents.append(
+                        types.Content(
+                            role="user",
+                            parts=[
+                                types.Part.from_function_response(
+                                    name=str(name),
+                                    response={"result": "" if result is None else str(result)},
+                                )
+                            ],
+                        )
+                    )
+                continue
+
+            # default user-like message
+            text = m.get("content")
+            if text:
+                contents.append(
+                    types.Content(role="user", parts=[types.Part.from_text(text=str(text))])
+                )
+
+        system_instruction = "\n\n".join(system_parts) if system_parts else None
+        return system_instruction, contents
+
+    def _safe_text(self, response: types.GenerateContentResponse) -> str | None:
+        try:
+            text = response.text
+            return text if text else None
+        except Exception:
+            return None
 
     async def generate(
         self,
         messages: list[dict],
         tools: list[dict] | None = None,
     ) -> LLMResponse:
-        prompt = self._flatten_messages(messages)
+        system_instruction, contents = self._build_contents(messages)
+        gemini_tools = self._build_gemini_tools(tools)
 
-        response = self.client.models.generate_content(
-            model=self.model,
-            contents=prompt,
-            config={
-                "temperature": self.temperature,
-                "max_output_tokens": self.max_output_tokens,
-            },
+        config = types.GenerateContentConfig(
+            systemInstruction=system_instruction,
+            temperature=self.temperature,
+            maxOutputTokens=self.max_output_tokens,
+            tools=gemini_tools,
         )
 
-        text = getattr(response, "text", None)
+        response = await asyncio.to_thread(
+            self.client.models.generate_content,
+            model=self.model,
+            contents=contents or [types.Content(role="user", parts=[types.Part.from_text(text="")])],
+            config=config,
+        )
+
+        text = self._safe_text(response)
+        raw_function_calls = getattr(response, "function_calls", None) or []
+        tool_calls: list[ToolCall] = []
+        for i, fc in enumerate(raw_function_calls):
+            name = getattr(fc, "name", None)
+            if not name:
+                continue
+            args = self._parse_tool_args(getattr(fc, "args", {}))
+            call_id = getattr(fc, "id", None) or f"gemini_call_{i}"
+            tool_calls.append(ToolCall(id=str(call_id), name=str(name), arguments=args))
+
+        finish_reason = "stop"
+        candidates = getattr(response, "candidates", None) or []
+        if candidates:
+            candidate_reason = getattr(candidates[0], "finish_reason", None)
+            if candidate_reason is not None:
+                finish_reason = str(candidate_reason)
+
         return LLMResponse(
             content=text,
-            tool_calls=[],
-            finish_reason="stop",
+            tool_calls=tool_calls,
+            finish_reason=finish_reason,
         )

@@ -1,3 +1,19 @@
+'''
+
+context builder
+
+    2025.12 edited/ 后续需要修改这个部分
+    注： 这个模块负责把所有上下文拼起来
+        因为 context builder 本身就是“上下文拼装中心”，
+        memory/skills 都是上下文来源
+
+        build messages：
+            - system
+            - history
+            - current user message
+'''
+
+
 from pathlib import Path
 from typing import Any
 from .memory import MemoryStore
@@ -14,18 +30,24 @@ class ContextBuilder:
         self.skills = SkillsLoader(workspace)
 
     def build_system_prompt(self) -> str:
+        # add system prompt
         parts = [self.system_prompt]
 
         memory = self.memory.get_memory_context()
         if memory:
+            # add long-term memory
             parts.append(memory)
 
         skills = self.skills.build_skills_summary()
         if skills:
+
+            ''' edit needed '''
+            # skills summary? list?
             parts.append(skills)
 
         return "\n\n---\n\n".join(parts)
 
+    # info about channel 
     def build_runtime_context(self, channel: str, chat_id: str) -> str:
         return f"{self.RUNTIME_TAG}\nChannel: {channel}\nChat ID: {chat_id}"
 
@@ -36,7 +58,9 @@ class ContextBuilder:
         channel: str,
         chat_id: str,
     ) -> list[dict[str, Any]]:
+        
         runtime = self.build_runtime_context(channel, chat_id)
+        # 把 runtime context 拼到 user message 前面
         merged_user = f"{runtime}\n\n{current_message}"
 
         return [

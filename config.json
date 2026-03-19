@@ -25,7 +25,7 @@
     "telegram": {
       "enabled": true,
       "token": "${TELEGRAM_BOT_TOKEN}",
-      "allowFrom": ["123456789"],
+      "allowFrom": ["baekseju2901"],
       "allowGroups": false,
       "groupPolicy": "mention"
     }

@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from pathlib import Path
 
@@ -7,6 +8,15 @@ from seju_lite.tools.registry import ToolRegistry
 from seju_lite.tools.time_tool import TimeTool
 from seju_lite.tools.read_file_tool import ReadFileTool
 
+"""
+    the core processing engine.
+
+    1. Receives messages from the bus
+    2. Builds context with history, memory, skills
+    3. Calls the LLM
+    4. Executes tool calls
+    5. Sends responses back
+"""
 
 class AgentLoop:
     def __init__(self, config, provider, bus):
@@ -15,11 +25,17 @@ class AgentLoop:
         self.bus = bus
         self.workspace = Path(config.agent.workspace)
 
+
+        # build context
         self.context = ContextBuilder(
             workspace=self.workspace,
             system_prompt=config.agent.systemPrompt
         )
+
+        # build sessions manager
         self.sessions = SessionManager(config.storage.sessionFile)
+
+        # build tools
         self.tools = ToolRegistry()
         self._register_tools()
 
@@ -34,10 +50,9 @@ class AgentLoop:
         final_content = None
 
         for _ in range(max_iterations):
-            response = await self.provider.chat_with_retry(
+            response = await self.provider.generate(
                 messages=messages,
                 tools=self.tools.get_definitions(),
-                model=self.config.provider.model
             )
 
             if response.has_tool_calls:
@@ -50,7 +65,7 @@ class AgentLoop:
                             "type": "function",
                             "function": {
                                 "name": tc.name,
-                                "arguments": str(tc.arguments)
+                                "arguments": json.dumps(tc.arguments, ensure_ascii=False)
                             }
                         }
                         for tc in response.tool_calls
