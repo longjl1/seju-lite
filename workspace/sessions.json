@@ -111,8 +111,70 @@
         "role": "assistant",
         "content": "你好！有什么我可以帮助你的吗？",
         "timestamp": "2026-03-19T23:46:56.938283"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\nhi",
+        "timestamp": "2026-03-19T23:56:26.793740"
+      },
+      {
+        "role": "assistant",
+        "content": "Hello! How can I help you today?",
+        "timestamp": "2026-03-19T23:56:26.793756"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\nhi",
+        "timestamp": "2026-03-19T23:56:28.105153"
+      },
+      {
+        "role": "assistant",
+        "content": "Hello! How can I help you today?",
+        "timestamp": "2026-03-19T23:56:28.105158"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\n现在什么时间了 调用time 工具",
+        "timestamp": "2026-03-19T23:59:16.991513"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "gemini_call_0",
+            "type": "function",
+            "function": {
+              "name": "time",
+              "arguments": "{}"
+            }
+          }
+        ],
+        "timestamp": "2026-03-19T23:59:16.991517"
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "gemini_call_0",
+        "name": "time",
+        "content": "2026-03-19T23:59:15.667650",
+        "timestamp": "2026-03-19T23:59:16.991518"
+      },
+      {
+        "role": "assistant",
+        "content": "现在是2026年3月19日23点59分15秒。",
+        "timestamp": "2026-03-19T23:59:16.991519"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\n现在纽约什么时间 time工具",
+        "timestamp": "2026-03-19T23:59:48.252429"
+      },
+      {
+        "role": "assistant",
+        "content": "我无法查询特定城市的时间，`time` 工具只能提供当前的本地时间。",
+        "timestamp": "2026-03-19T23:59:48.252434"
       }
     ],
-    "updated_at": "2026-03-19T23:46:56.938286"
+    "updated_at": "2026-03-19T23:59:48.252435"
   }
 }
