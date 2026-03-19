@@ -38,7 +38,18 @@ class SessionManager:
     def _load(self) -> None:
         if not self.session_file.exists():
             return
-        raw = json.loads(self.session_file.read_text(encoding="utf-8"))
+        text = self.session_file.read_text(encoding="utf-8").strip()
+        if not text:
+            self._sessions = {}
+            return
+        try:
+            raw = json.loads(text)
+        except json.JSONDecodeError:
+            self._sessions = {}
+            return
+        if not isinstance(raw, dict):
+            self._sessions = {}
+            return
         # dict[str, Session]
         self._sessions = {
             k: Session.model_validate(v)
