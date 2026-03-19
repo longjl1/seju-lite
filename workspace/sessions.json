@@ -1,1 +1,38 @@
-﻿{}
+{
+  "telegram:6636346894": {
+    "key": "telegram:6636346894",
+    "messages": [
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\n你好",
+        "timestamp": "2026-03-20T00:29:30.671822"
+      },
+      {
+        "role": "assistant",
+        "content": "你好！有什么我能帮你吗？\n",
+        "timestamp": "2026-03-20T00:29:30.671827"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\n你好",
+        "timestamp": "2026-03-20T00:33:20.970491"
+      },
+      {
+        "role": "assistant",
+        "content": "你好！有什么我能帮你吗？\n",
+        "timestamp": "2026-03-20T00:33:20.970508"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\n你好",
+        "timestamp": "2026-03-20T00:35:12.701222"
+      },
+      {
+        "role": "assistant",
+        "content": "你好！有什么我能帮你吗？\n",
+        "timestamp": "2026-03-20T00:35:12.701227"
+      }
+    ],
+    "updated_at": "2026-03-20T00:35:12.701229"
+  }
+}

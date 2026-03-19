@@ -45,6 +45,17 @@ from seju_lite.agent.loop import AgentLoop
 app = typer.Typer()
 
 
+def _format_provider_error(exc: Exception) -> str:
+    msg = str(exc)
+    if "RESOURCE_EXHAUSTED" in msg or "429" in msg or "quota" in msg.lower():
+        return "Gemini quota exceeded (429). Wait for quota reset or use a paid plan / another model."
+    if "PERMISSION_DENIED" in msg or "403" in msg:
+        if "leaked" in msg.lower():
+            return "Gemini API key is blocked as leaked (403). Create and use a new API key."
+        return "Gemini permission denied (403). Check API key and project permissions."
+    return "Provider request failed. Please check API key/billing/quota and try again."
+
+
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
@@ -107,8 +118,8 @@ async def _run(config_path: str):
             msg = await bus.consume_inbound()
             try:
                 text = await agent.process_message(msg)
-            except Exception:
-                text = "Provider request failed. Please check API key/billing/quota and try again."
+            except Exception as exc:
+                text = _format_provider_error(exc)
             await bus.publish_outbound(
                 type("Obj", (), {
                     "channel": msg.channel,
