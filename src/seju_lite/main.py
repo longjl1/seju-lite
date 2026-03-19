@@ -105,7 +105,10 @@ async def _run(config_path: str):
     async def inbound_worker():
         while True:
             msg = await bus.consume_inbound()
-            text = await agent.process_message(msg)
+            try:
+                text = await agent.process_message(msg)
+            except Exception:
+                text = "Provider request failed. Please check API key/billing/quota and try again."
             await bus.publish_outbound(
                 type("Obj", (), {
                     "channel": msg.channel,
