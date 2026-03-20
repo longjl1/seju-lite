@@ -14,4 +14,7 @@ A lightweight Telegram-first AI assistant inspired by nanobot.
 ```bash
 uv sync
 cp .env.example .env
-uv run seju-lite run --config config.json
+uv run seju-lite chat --config config.json
+# or run long-lived Telegram runtime:
+uv run seju-lite start --config config.json
+```

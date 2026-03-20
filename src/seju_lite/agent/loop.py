@@ -39,6 +39,7 @@ class AgentLoop:
         self.tools = ToolRegistry()
         self._register_tools()
 
+    # 这里会注册所有的tools 
     def _register_tools(self):
         if self.config.tools.time.enabled:
             self.tools.register(TimeTool())
@@ -52,7 +53,7 @@ class AgentLoop:
         for _ in range(max_iterations):
             response = await self.provider.generate(
                 messages=messages,
-                tools=self.tools.get_definitions(),
+                tools=self.tools.get_definitions(), # see the provider and registry.py [{ type:"...", function:{...} }, ...] 
             )
 
             if response.has_tool_calls:
