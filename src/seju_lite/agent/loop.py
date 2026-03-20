@@ -7,6 +7,7 @@ from seju_lite.session.manager import SessionManager
 from seju_lite.tools.registry import ToolRegistry
 from seju_lite.tools.time_tool import TimeTool
 from seju_lite.tools.read_file_tool import ReadFileTool
+from seju_lite.tools.web_tool import WebFetchTool
 
 """
     the core processing engine.
@@ -50,6 +51,8 @@ class AgentLoop:
             self.tools.register(TimeTool())
         if self.config.tools.readFile.enabled:
             self.tools.register(ReadFileTool(Path(self.config.tools.readFile.rootDir)))
+        if self.config.tools.web.enabled:
+            self.tools.register(WebFetchTool(max_chars=self.config.tools.web.maxChars))
 
     @staticmethod
     def _to_openai_tool_call_dict(tc) -> dict:

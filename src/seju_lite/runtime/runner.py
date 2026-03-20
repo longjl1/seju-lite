@@ -10,6 +10,17 @@ from seju_lite.runtime.app import SejuApp
 logger = logging.getLogger("seju_lite.runtime")
 
 
+def _format_runtime_error(exc: Exception) -> str:
+    msg = str(exc).lower()
+    if "503" in msg or "unavailable" in msg or "high demand" in msg:
+        return "Model service is temporarily busy (503). Please try again in a moment."
+    if "429" in msg or "resource_exhausted" in msg or "quota" in msg:
+        return "Request quota/rate limit reached (429). Please retry later."
+    if "403" in msg or "permission_denied" in msg:
+        return "Provider permission denied (403). Please check API key and project settings."
+    return "Sorry, something went wrong while processing your message."
+
+
 async def inbound_worker(app: SejuApp) -> None:
     """
     Consume inbound messages, pass them to AgentLoop,
@@ -26,9 +37,9 @@ async def inbound_worker(app: SejuApp) -> None:
 
         try:
             reply = await app.agent.process_message(inbound)
-        except Exception:
+        except Exception as exc:
             logger.exception("Failed to process inbound message")
-            reply = "Sorry, something went wrong while processing your message."
+            reply = _format_runtime_error(exc)
 
         outbound = OutboundMessage(
             channel=inbound.channel,
@@ -132,9 +143,9 @@ async def run_cli_chat(app: SejuApp, session_key: str = "cli:local") -> None:
 
         try:
             reply = await app.agent.process_message(inbound)
-        except Exception:
+        except Exception as exc:
             logger.exception("CLI chat failed")
-            reply = "Sorry, something went wrong."
+            reply = _format_runtime_error(exc)
 
         print(f"Bot > {reply}\n")
 

@@ -1,5 +1,6 @@
-from pathlib import Path
+﻿from pathlib import Path
 from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -55,10 +56,16 @@ class ShellToolConfig(BaseModel):
     timeoutSec: int = 8
 
 
-class ToolsConfig(BaseModel): #把多个工具的配置组合到一�?
+class WebToolConfig(BaseModel):
+    enabled: bool = True
+    maxChars: int = 12000
+
+
+class ToolsConfig(BaseModel):
     time: TimeToolConfig = TimeToolConfig()
     readFile: ReadFileToolConfig = ReadFileToolConfig()
     shell: ShellToolConfig = ShellToolConfig()
+    web: WebToolConfig = WebToolConfig()
 
 
 class StorageConfig(BaseModel):

@@ -42,6 +42,10 @@
       "enabled": false,
       "allowedCommands": ["pwd", "ls", "cat"],
       "timeoutSec": 8
+    },
+    "web": {
+      "enabled": true,
+      "maxChars": 12000
     }
   },
   "storage": {

@@ -21,6 +21,22 @@ class GeminiProvider(LLMProvider):
         self.temperature = temperature
         self.max_output_tokens = max_output_tokens
 
+    @staticmethod
+    def _is_retryable_error(exc: Exception) -> bool:
+        msg = str(exc).lower()
+        retry_markers = [
+            "503",
+            "unavailable",
+            "high demand",
+            "temporarily unavailable",
+            "429",
+            "resource_exhausted",
+            "deadline exceeded",
+            "timeout",
+            "connection",
+        ]
+        return any(marker in msg for marker in retry_markers)
+
 
     def _build_gemini_tools(self, tools: list[dict] | None) -> list[types.Tool] | None:
         if not tools:
@@ -164,12 +180,26 @@ class GeminiProvider(LLMProvider):
             tools=gemini_tools,
         )
 
-        response = await asyncio.to_thread(
-            self.client.models.generate_content,
-            model=self.model,
-            contents=contents or [types.Content(role="user", parts=[types.Part.from_text(text="")])],
-            config=config,
-        )
+        response = None
+        attempts = 3
+        base_delay = 1.0
+        for i in range(attempts):
+            try:
+                response = await asyncio.to_thread(
+                    self.client.models.generate_content,
+                    model=self.model,
+                    contents=contents or [types.Content(role="user", parts=[types.Part.from_text(text="")])],
+                    config=config,
+                )
+                break
+            except Exception as exc:
+                is_last = i == attempts - 1
+                if not self._is_retryable_error(exc) or is_last:
+                    raise
+                await asyncio.sleep(base_delay * (2 ** i))
+
+        if response is None:
+            raise RuntimeError("Gemini returned no response")
 
         text = self._safe_text(response)
         raw_function_calls = getattr(response, "function_calls", None) or []
