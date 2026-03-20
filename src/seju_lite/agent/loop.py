@@ -81,9 +81,22 @@ class AgentLoop:
                         "content": result
                     })
             else:
-                final_content = response.content
-                messages.append({"role": "assistant", "content": final_content})
-                break
+                if response.content and response.content.strip():
+                    final_content = response.content
+                    messages.append({"role": "assistant", "content": final_content})
+                    break
+
+                # Some models occasionally return an empty turn after tool execution.
+                # Nudge one more round instead of finishing with "No response.".
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            "Please provide a concise final answer to the user based on the "
+                            "tool results and conversation context."
+                        ),
+                    }
+                )
 
         return final_content or "No response.", messages
 

@@ -21,7 +21,7 @@ class AgentConfig(BaseModel):
 
 
 class ProviderConfig(BaseModel):
-    kind: Literal["gemini"] = "gemini" #支持多个 provider ["gemini", "openai_compatible"]
+    kind: Literal["gemini", "openai_compatible"] = "gemini"
     apiKey: str
     model: str = "gemini-2.5-flash"
     temperature: float = 0.3
@@ -55,7 +55,7 @@ class ShellToolConfig(BaseModel):
     timeoutSec: int = 8
 
 
-class ToolsConfig(BaseModel): #把多个工具的配置组合到一起
+class ToolsConfig(BaseModel): #把多个工具的配置组合到一�?
     time: TimeToolConfig = TimeToolConfig()
     readFile: ReadFileToolConfig = ReadFileToolConfig()
     shell: ShellToolConfig = ShellToolConfig()

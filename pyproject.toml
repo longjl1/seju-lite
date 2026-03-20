@@ -24,7 +24,7 @@ dev = [
 ]
 
 [project.scripts]
-seju-lite = "seju_lite.main:app"
+seju-lite = "seju_lite.cli.commands:app"
 
 [build-system]
 requires = ["hatchling"]

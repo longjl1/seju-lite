@@ -31,8 +31,167 @@
         "role": "assistant",
         "content": "你好！有什么我能帮你吗？\n",
         "timestamp": "2026-03-20T00:35:12.701227"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: telegram\nChat ID: 6636346894\n\n现在几点？",
+        "timestamp": "2026-03-20T00:43:06.776306"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "gemini_call_0",
+            "type": "function",
+            "function": {
+              "name": "time",
+              "arguments": "{}"
+            }
+          }
+        ],
+        "timestamp": "2026-03-20T00:43:06.776312"
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "gemini_call_0",
+        "name": "time",
+        "content": "2026-03-20T00:43:05.821654",
+        "timestamp": "2026-03-20T00:43:06.776313"
+      },
+      {
+        "role": "assistant",
+        "content": "现在是2026年03月20日00:43:05。",
+        "timestamp": "2026-03-20T00:43:06.776314"
       }
     ],
-    "updated_at": "2026-03-20T00:35:12.701229"
+    "updated_at": "2026-03-20T00:43:06.776316"
+  },
+  "cli:local": {
+    "key": "cli:local",
+    "messages": [
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: cli\nChat ID: local\n\nhello",
+        "timestamp": "2026-03-20T12:49:28.784664"
+      },
+      {
+        "role": "assistant",
+        "content": "Hello! How can I help you today?",
+        "timestamp": "2026-03-20T12:49:28.784669"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: cli\nChat ID: local\n\nwhat time is it?",
+        "timestamp": "2026-03-20T12:49:42.197869"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "gemini_call_0",
+            "type": "function",
+            "function": {
+              "name": "time",
+              "arguments": "{}"
+            }
+          }
+        ],
+        "timestamp": "2026-03-20T12:49:42.197872"
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "gemini_call_0",
+        "name": "time",
+        "content": "2026-03-20T12:49:41.479765",
+        "timestamp": "2026-03-20T12:49:42.197873"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "timestamp": "2026-03-20T12:49:42.197874"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: cli\nChat ID: local\n\n现在几点？调用time工具",
+        "timestamp": "2026-03-20T12:50:16.232835"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "gemini_call_0",
+            "type": "function",
+            "function": {
+              "name": "time",
+              "arguments": "{}"
+            }
+          }
+        ],
+        "timestamp": "2026-03-20T12:50:16.232839"
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "gemini_call_0",
+        "name": "time",
+        "content": "2026-03-20T12:50:15.528635",
+        "timestamp": "2026-03-20T12:50:16.232839"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "timestamp": "2026-03-20T12:50:16.232840"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: cli\nChat ID: local\n\n你好",
+        "timestamp": "2026-03-20T15:40:40.290612"
+      },
+      {
+        "role": "assistant",
+        "content": "你好！有什么可以帮您的吗？",
+        "timestamp": "2026-03-20T15:40:40.290616"
+      },
+      {
+        "role": "user",
+        "content": "[Runtime Context]\nChannel: cli\nChat ID: local\n\n现在几点？",
+        "timestamp": "2026-03-20T15:40:56.684533"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "gemini_call_0",
+            "type": "function",
+            "function": {
+              "name": "time",
+              "arguments": "{}"
+            }
+          }
+        ],
+        "timestamp": "2026-03-20T15:40:56.684537"
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "gemini_call_0",
+        "name": "time",
+        "content": "2026-03-20T15:40:55.116775",
+        "timestamp": "2026-03-20T15:40:56.684538"
+      },
+      {
+        "role": "user",
+        "content": "Please provide a concise final answer to the user based on the tool results and conversation context.",
+        "timestamp": "2026-03-20T15:40:56.684539"
+      },
+      {
+        "role": "assistant",
+        "content": "The current time is 2026-03-20 15:40:55.116775.",
+        "timestamp": "2026-03-20T15:40:56.684539"
+      }
+    ],
+    "updated_at": "2026-03-20T15:40:56.684541"
   }
 }

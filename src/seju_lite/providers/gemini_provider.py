@@ -94,7 +94,7 @@ class GeminiProvider(LLMProvider):
                     result = m.get("content")
                     contents.append(
                         types.Content(
-                            role="user",
+                            role="tool",
                             parts=[
                                 types.Part.from_function_response(
                                     name=str(name),
@@ -118,9 +118,20 @@ class GeminiProvider(LLMProvider):
     def _safe_text(self, response: types.GenerateContentResponse) -> str | None:
         try:
             text = response.text
-            return text if text else None
+            if text:
+                return text
         except Exception:
-            return None
+            pass
+
+        candidates = getattr(response, "candidates", None) or []
+        for cand in candidates:
+            content = getattr(cand, "content", None)
+            parts = getattr(content, "parts", None) or []
+            for part in parts:
+                part_text = getattr(part, "text", None)
+                if part_text:
+                    return str(part_text)
+        return None
 
     async def generate(
         self,
