@@ -6,7 +6,7 @@
   },
   "agent": {
     "name": "SejuLite",
-    "systemPrompt": "You are a concise and helpful Telegram AI assistant.",
+    "systemPrompt": "", 
     "maxIterations": 8,
     "maxHistory": 12,
     "workspace": "./workspace",

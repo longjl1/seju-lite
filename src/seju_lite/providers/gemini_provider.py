@@ -57,6 +57,22 @@ class GeminiProvider(LLMProvider):
                 return {}
         return {}
 
+    def _extract_text_from_content(self, content: Any) -> str | None:
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            chunks: list[str] = []
+            for item in content:
+                if not isinstance(item, dict):
+                    continue
+                if item.get("type") == "text":
+                    text = item.get("text")
+                    if isinstance(text, str) and text.strip():
+                        chunks.append(text)
+            if chunks:
+                return "\n".join(chunks)
+        return None
+
     def _build_contents(self, messages: list[dict]) -> tuple[str | None, list[types.Content]]:
         system_parts: list[str] = []
         contents: list[types.Content] = []
@@ -106,7 +122,7 @@ class GeminiProvider(LLMProvider):
                 continue
 
             # default user-like message
-            text = m.get("content")
+            text = self._extract_text_from_content(m.get("content"))
             if text:
                 contents.append(
                     types.Content(role="user", parts=[types.Part.from_text(text=str(text))])
