@@ -1,14 +1,17 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
-from seju_lite.bus.events import InboundMessage, OutboundMessage
+from seju_lite.bus.events import OutboundMessage
+from seju_lite.channels.base import BaseChannel
 
 
-class TelegramChannel:
+class TelegramChannel(BaseChannel):
+    name = "telegram"
+    display_name = "Telegram"
+
     def __init__(self, token: str, bus, allow_from: list[str] | None = None):
+        super().__init__(bus=bus, allow_from=allow_from)
         self.token = token
-        self.bus = bus
-        self.allow_from = set(allow_from or [])
         self.app = Application.builder().token(token).build()
 
     async def on_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -29,14 +32,12 @@ class TelegramChannel:
                 return
 
         text = update.effective_message.text or ""
-        inbound = InboundMessage(
-            channel="telegram",
+        await self.publish_inbound(
             sender_id=user_id,
             chat_id=str(update.effective_chat.id),
             content=text,
-            metadata={"message_id": update.effective_message.message_id}
+            metadata={"message_id": update.effective_message.message_id},
         )
-        await self.bus.publish_inbound(inbound)
 
     async def on_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if update.effective_chat:
@@ -53,6 +54,15 @@ class TelegramChannel:
         await self.app.initialize()
         await self.app.start()
         await self.app.updater.start_polling()
+        self._running = True
 
-    async def send_message(self, msg: OutboundMessage):
+    async def stop(self) -> None:
+        if not self._running:
+            return
+        await self.app.updater.stop()
+        await self.app.stop()
+        await self.app.shutdown()
+        self._running = False
+
+    async def send(self, msg: OutboundMessage) -> None:
         await self.app.bot.send_message(chat_id=msg.chat_id, text=msg.content)

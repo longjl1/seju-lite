@@ -65,13 +65,11 @@ async def outbound_worker(app: SejuApp) -> None:
         )
 
         try:
-            if outbound.channel == "telegram":
-                if app.telegram is None:
-                    logger.warning("Telegram channel is not initialized")
-                    continue
-                await app.telegram.send_message(outbound)
-            else:
+            channel = app.channels.get(outbound.channel)
+            if channel is None:
                 logger.warning("Unsupported outbound channel: %s", outbound.channel)
+                continue
+            await channel.send(outbound)
         except Exception:
             logger.exception("Failed to send outbound message")
 
@@ -82,9 +80,9 @@ async def run_forever(app: SejuApp) -> None:
     """
     tasks: list[asyncio.Task] = []
 
-    if app.telegram is not None:
-        await app.telegram.start()
-        logger.info("Telegram channel started")
+    for name, channel in app.channels.items():
+        await channel.start()
+        logger.info("%s channel started", name)
 
     tasks.append(asyncio.create_task(inbound_worker(app), name="inbound-worker"))
     tasks.append(asyncio.create_task(outbound_worker(app), name="outbound-worker"))
@@ -154,10 +152,6 @@ async def close_app(app: SejuApp) -> None:
     """
     Best-effort shutdown hook.
     """
-    if app.telegram is not None:
+    for channel in app.channels.values():
         with contextlib.suppress(Exception):
-            await app.telegram.app.updater.stop()
-        with contextlib.suppress(Exception):
-            await app.telegram.app.stop()
-        with contextlib.suppress(Exception):
-            await app.telegram.app.shutdown()
+            await channel.stop()

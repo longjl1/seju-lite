@@ -22,8 +22,9 @@ class AgentConfig(BaseModel):
 
 
 class ProviderConfig(BaseModel):
-    kind: Literal["gemini", "openai_compatible"] = "gemini"
+    kind: Literal["gemini", "openai_compatible", "deepseek", "litellm_deepseek"] = "gemini"
     apiKey: str
+    apiBase: str | None = None
     model: str = "gemini-2.5-flash"
     temperature: float = 0.3
     maxOutputTokens: int = 1200
@@ -37,8 +38,25 @@ class TelegramConfig(BaseModel):
     groupPolicy: Literal["mention", "open"] = "mention"
 
 
+class WhatsAppConfig(BaseModel):
+    enabled: bool = False
+    token: str = ""
+    phoneNumberId: str = ""
+    apiBase: str = "https://graph.facebook.com/v22.0"
+    allowFrom: list[str] = Field(default_factory=list)
+
+
+class DiscordConfig(BaseModel):
+    enabled: bool = False
+    token: str = ""
+    allowFrom: list[str] = Field(default_factory=list)
+    groupPolicy: Literal["mention", "open"] = "mention"
+
+
 class ChannelsConfig(BaseModel):
     telegram: TelegramConfig
+    whatsapp: WhatsAppConfig = WhatsAppConfig()
+    discord: DiscordConfig = DiscordConfig()
 
 
 class TimeToolConfig(BaseModel):

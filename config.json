@@ -15,18 +15,32 @@
     "enableTools": true
   },
   "provider": {
-    "kind": "gemini",
-    "apiKey": "${GEMINI_API_KEY}",
-    "model": "gemini-2.5-flash-lite",
+    "kind": "deepseek",
+    "apiKey": "${DEEPSEEK_API_KEY}",
+    "apiBase": "https://api.deepseek.com",
+    "model": "deepseek-chat",
     "temperature": 0.3,
     "maxOutputTokens": 1200
   },
   "channels": {
     "telegram": {
-      "enabled": true,
+      "enabled": false,
       "token": "${TELEGRAM_BOT_TOKEN}",
       "allowFrom": ["baekseju2901"],
       "allowGroups": false,
+      "groupPolicy": "mention"
+    },
+    "whatsapp": {
+      "enabled": false,
+      "token": "",
+      "phoneNumberId": "",
+      "apiBase": "https://graph.facebook.com/v22.0",
+      "allowFrom": []
+    },
+    "discord": {
+      "enabled": true,
+      "token": "${DISCORD_BOT_TOKEN}",
+      "allowFrom": [],
       "groupPolicy": "mention"
     }
   },

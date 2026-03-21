@@ -1,20 +1,23 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 import logging
 import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Callable
 
 from dotenv import load_dotenv
 
 from seju_lite.agent.loop import AgentLoop
 from seju_lite.bus.queue import MessageBus
-from seju_lite.channels.telegram_bot import TelegramChannel
+from seju_lite.channels.registry import discover_all as discover_channels
 from seju_lite.config.loader import load_config
 from seju_lite.config.schema import RootConfig
 from seju_lite.providers.base import LLMProvider
 from seju_lite.providers.gemini_provider import GeminiProvider
+from seju_lite.providers.litellm_deepseek_provider import LiteLLMDeepSeekProvider
 from seju_lite.providers.openai_compatible import OpenAICompatibleProvider
+from seju_lite.providers.registry import find_by_kind
 
 
 @dataclass
@@ -23,7 +26,7 @@ class SejuApp:
     bus: MessageBus
     provider: LLMProvider
     agent: AgentLoop
-    telegram: TelegramChannel | None = None
+    channels: dict[str, Any]
 
 
 def setup_logging(level: str = "INFO") -> None:
@@ -33,40 +36,61 @@ def setup_logging(level: str = "INFO") -> None:
     )
 
 
+def _build_gemini(config: RootConfig) -> LLMProvider:
+    return GeminiProvider(
+        api_key=config.provider.apiKey,
+        model=config.provider.model,
+        temperature=config.provider.temperature,
+        max_output_tokens=config.provider.maxOutputTokens,
+    )
+
+
+def _build_openai_compatible(config: RootConfig) -> LLMProvider:
+    base_url = os.getenv("OPENAI_COMPATIBLE_BASE_URL", "").strip()
+    if not base_url:
+        raise ValueError("OPENAI_COMPATIBLE_BASE_URL is not set")
+
+    return OpenAICompatibleProvider(
+        base_url=base_url,
+        api_key=config.provider.apiKey,
+        model=config.provider.model,
+        temperature=config.provider.temperature,
+        max_tokens=config.provider.maxOutputTokens,
+    )
+
+
+def _build_litellm_deepseek(config: RootConfig) -> LLMProvider:
+    return LiteLLMDeepSeekProvider(
+        api_key=config.provider.apiKey,
+        model=config.provider.model,
+        temperature=config.provider.temperature,
+        max_output_tokens=config.provider.maxOutputTokens,
+        api_base=config.provider.apiBase,
+        provider_kind=config.provider.kind,
+    )
+
+
+PROVIDER_BUILDERS: dict[str, Callable[[RootConfig], LLMProvider]] = {
+    "gemini": _build_gemini,
+    "openai_compatible": _build_openai_compatible,
+    "deepseek": _build_litellm_deepseek,
+    "litellm_deepseek": _build_litellm_deepseek,
+}
+
+
 def build_provider(config: RootConfig) -> LLMProvider:
     kind = config.provider.kind
+    if find_by_kind(kind) is None:
+        raise ValueError(f"Unsupported provider kind: {kind}")
 
-    if kind == "gemini":
-        return GeminiProvider(
-            api_key=config.provider.apiKey,
-            model=config.provider.model,
-            temperature=config.provider.temperature,
-            max_output_tokens=config.provider.maxOutputTokens,
-        )
-
-    # 这里给 openai_compatible 留好扩展位
-    # 你需要把 schema.py 的 ProviderConfig.kind 改成:
-    # Literal["gemini", "openai_compatible"]
-    if kind == "openai_compatible":
-        base_url = os.getenv("OPENAI_COMPATIBLE_BASE_URL", "").strip()
-        if not base_url:
-            raise ValueError("OPENAI_COMPATIBLE_BASE_URL is not set")
-
-        return OpenAICompatibleProvider(
-            base_url=base_url,
-            api_key=config.provider.apiKey,
-            model=config.provider.model,
-            temperature=config.provider.temperature,
-            max_tokens=config.provider.maxOutputTokens,
-        )
-
-    raise ValueError(f"Unsupported provider kind: {kind}")
+    builder = PROVIDER_BUILDERS.get(kind)
+    if builder is None:
+        raise ValueError(f"Provider kind '{kind}' is not wired in PROVIDER_BUILDERS")
+    return builder(config)
 
 
 async def create_app(config_path: str | Path) -> SejuApp:
     config_path = Path(config_path)
-    # Load env vars before parsing config placeholders like ${GEMINI_API_KEY}.
-    # Prefer .env near the config file, then fall back to default lookup.
     load_dotenv(config_path.with_name(".env"), override=False)
     load_dotenv(override=False)
 
@@ -77,12 +101,46 @@ async def create_app(config_path: str | Path) -> SejuApp:
     provider = build_provider(config)
     agent = AgentLoop(config=config, provider=provider, bus=bus)
 
-    telegram = None
+    channel_instances: dict[str, Any] = {}
+    discovered = discover_channels()
+
     if config.channels.telegram.enabled:
-        telegram = TelegramChannel(
+        channel_cls = discovered.get("telegram")
+        if channel_cls is None:
+            raise RuntimeError("Telegram channel is enabled but no 'telegram' channel class is registered")
+        channel_instances["telegram"] = channel_cls(
             token=config.channels.telegram.token,
             bus=bus,
             allow_from=config.channels.telegram.allowFrom,
+        )
+
+    if config.channels.whatsapp.enabled:
+        channel_cls = discovered.get("whatsapp")
+        if channel_cls is None:
+            raise RuntimeError("WhatsApp channel is enabled but no 'whatsapp' channel class is registered")
+        if not config.channels.whatsapp.token:
+            raise ValueError("channels.whatsapp.token is required when WhatsApp is enabled")
+        if not config.channels.whatsapp.phoneNumberId:
+            raise ValueError("channels.whatsapp.phoneNumberId is required when WhatsApp is enabled")
+        channel_instances["whatsapp"] = channel_cls(
+            token=config.channels.whatsapp.token,
+            phone_number_id=config.channels.whatsapp.phoneNumberId,
+            api_base=config.channels.whatsapp.apiBase,
+            bus=bus,
+            allow_from=config.channels.whatsapp.allowFrom,
+        )
+
+    if config.channels.discord.enabled:
+        channel_cls = discovered.get("discord")
+        if channel_cls is None:
+            raise RuntimeError("Discord channel is enabled but no 'discord' channel class is registered")
+        if not config.channels.discord.token:
+            raise ValueError("channels.discord.token is required when Discord is enabled")
+        channel_instances["discord"] = channel_cls(
+            token=config.channels.discord.token,
+            bus=bus,
+            allow_from=config.channels.discord.allowFrom,
+            group_policy=config.channels.discord.groupPolicy,
         )
 
     return SejuApp(
@@ -90,5 +148,5 @@ async def create_app(config_path: str | Path) -> SejuApp:
         bus=bus,
         provider=provider,
         agent=agent,
-        telegram=telegram,
+        channels=channel_instances,
     )
