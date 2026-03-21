@@ -78,3 +78,15 @@ uv run seju-lite test-provider --prompt "hello" --config config.json
 Options:
 - `-p, --prompt`: Prompt to send to provider (required)
 - `-c, --config`: Path to config file (default: `config.json`)
+
+### `mcp-server`
+Start a local MCP server that exposes built-in seju-lite tools (`time`, `read_file`, `web_fetch`).
+
+```bash
+uv run seju-lite mcp-server --config config.json --transport stdio
+```
+
+Options:
+- `-c, --config`: Path to config file (default: `config.json`)
+- `-t, --transport`: MCP transport (`stdio`, `sse`, `streamable-http`)
+- `-n, --name`: MCP server name (default: `seju-lite-tools`)

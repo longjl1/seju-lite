@@ -46,10 +46,10 @@
   },
   "tools": {
     "time": {
-      "enabled": true
+      "enabled": false
     },
     "readFile": {
-      "enabled": true,
+      "enabled": false,
       "rootDir": "./workspace"
     },
     "shell": {
@@ -58,8 +58,48 @@
       "timeoutSec": 8
     },
     "web": {
-      "enabled": true,
+      "enabled": false,
       "maxChars": 12000
+    },
+    "mcp": {
+      "enabled": true,
+      "servers": {
+        "seju_local": {
+          "type": "stdio",
+          "command": "uv",
+          "args": [
+            "run",
+            "seju-lite",
+            "mcp-server",
+            "--config",
+            "config.json",
+            "--transport",
+            "stdio"
+          ],
+          "enabledTools": ["*"],
+          "toolTimeout": 30
+        },
+        "notion": {
+          "type": "stdio",
+          "command": "npx.cmd",
+          "args": [
+            "-y",
+            "@notionhq/notion-mcp-server"
+          ],
+          "env": {
+            "NOTION_TOKEN": "${NOTION_TOKEN}",
+            "OPENAPI_MCP_HEADERS": "{\"Authorization\":\"Bearer ${NOTION_TOKEN}\",\"Notion-Version\":\"2025-09-03\"}"
+          },
+          "enabledTools": ["*"],
+          "toolTimeout": 30
+        },
+        "crypto_news": {
+          "type": "sse",
+          "url": "https://plugins.support/sse",
+          "enabledTools": ["*"],
+          "toolTimeout": 30
+        }
+      }
     }
   },
   "storage": {

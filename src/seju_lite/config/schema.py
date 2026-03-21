@@ -79,11 +79,28 @@ class WebToolConfig(BaseModel):
     maxChars: int = 12000
 
 
+class MCPServerToolConfig(BaseModel):
+    type: str | None = None
+    command: str | None = None
+    args: list[str] = Field(default_factory=list)
+    env: dict[str, str] = Field(default_factory=dict)
+    url: str | None = None
+    headers: dict[str, str] = Field(default_factory=dict)
+    enabledTools: list[str] = Field(default_factory=lambda: ["*"])
+    toolTimeout: int = 30
+
+
+class MCPToolConfig(BaseModel):
+    enabled: bool = False
+    servers: dict[str, MCPServerToolConfig] = Field(default_factory=dict)
+
+
 class ToolsConfig(BaseModel):
     time: TimeToolConfig = TimeToolConfig()
     readFile: ReadFileToolConfig = ReadFileToolConfig()
     shell: ShellToolConfig = ShellToolConfig()
     web: WebToolConfig = WebToolConfig()
+    mcp: MCPToolConfig = MCPToolConfig()
 
 
 class StorageConfig(BaseModel):

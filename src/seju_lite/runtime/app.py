@@ -18,6 +18,7 @@ from seju_lite.providers.gemini_provider import GeminiProvider
 from seju_lite.providers.litellm_deepseek_provider import LiteLLMDeepSeekProvider
 from seju_lite.providers.openai_compatible import OpenAICompatibleProvider
 from seju_lite.providers.registry import find_by_kind
+from seju_lite.tools.mcp_client import MCPClientHub
 
 
 @dataclass
@@ -27,6 +28,7 @@ class SejuApp:
     provider: LLMProvider
     agent: AgentLoop
     channels: dict[str, Any]
+    mcp_client_hub: MCPClientHub | None = None
 
 
 def setup_logging(level: str = "INFO") -> None:
@@ -100,6 +102,12 @@ async def create_app(config_path: str | Path) -> SejuApp:
     bus = MessageBus()
     provider = build_provider(config)
     agent = AgentLoop(config=config, provider=provider, bus=bus)
+    mcp_client_hub: MCPClientHub | None = None
+
+    """ start mcp client @ start """
+    if config.tools.mcp.enabled and config.tools.mcp.servers:
+        mcp_client_hub = MCPClientHub(config.tools.mcp.servers)
+        await mcp_client_hub.start(agent.tools)
 
     channel_instances: dict[str, Any] = {}
     discovered = discover_channels()
@@ -149,4 +157,5 @@ async def create_app(config_path: str | Path) -> SejuApp:
         provider=provider,
         agent=agent,
         channels=channel_instances,
+        mcp_client_hub=mcp_client_hub,
     )

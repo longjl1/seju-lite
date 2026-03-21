@@ -12,6 +12,7 @@ from seju_lite.runtime.runner import (
     run_cli_chat,
     run_forever,
 )
+from seju_lite.tools.mcp_server import run_mcp_server
 
 app = typer.Typer(
     help="seju-lite CLI",
@@ -127,3 +128,26 @@ async def _test_provider_async(config_path: str, prompt: str) -> None:
                 typer.echo(f"- {tc.name}: {tc.arguments}")
     finally:
         await close_app(app_ctx)
+
+
+@app.command("mcp-server")
+def mcp_server_command(
+    config: str = typer.Option("config.json", "--config", "-c", help="Path to config.json"),
+    transport: str = typer.Option(
+        "stdio",
+        "--transport",
+        "-t",
+        help="MCP transport (stdio/sse/streamable-http)",
+    ),
+    name: str = typer.Option("seju-lite-tools", "--name", "-n", help="MCP server name"),
+) -> None:
+    """
+    Start an MCP server that exposes seju-lite built-in tools.
+    """
+    cfg = load_config(config)
+    run_mcp_server(
+        transport=transport,
+        name=name,
+        read_root=Path(cfg.tools.readFile.rootDir),
+        web_max_chars=cfg.tools.web.maxChars,
+    )

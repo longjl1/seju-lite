@@ -152,6 +152,10 @@ async def close_app(app: SejuApp) -> None:
     """
     Best-effort shutdown hook.
     """
+    if app.mcp_client_hub is not None:
+        with contextlib.suppress(Exception):
+            await app.mcp_client_hub.close()
+
     for channel in app.channels.values():
         with contextlib.suppress(Exception):
             await channel.stop()
