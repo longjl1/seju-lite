@@ -9,6 +9,8 @@
     "systemPrompt": "", 
     "maxIterations": 8,
     "maxHistory": 12,
+    "enableSubagent": true,
+    "subagentMaxIterations": 10,
     "workspace": "./workspace",
     "enableMemory": true,
     "enableSkills": true,

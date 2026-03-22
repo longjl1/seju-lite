@@ -24,7 +24,11 @@ from seju_lite.tools.registry import ToolRegistry
 
 @dataclass
 class MCPServerConfig:
-    """Runtime configuration for one MCP server."""
+    """Runtime configuration for one MCP server. 
+    
+    把 config.json 里的 server 配置标准化
+    
+    """
 
     type: str | None = None
     command: str | None = None
@@ -255,6 +259,8 @@ async def connect_mcp_servers(
                     tool_def=tool_def,
                     tool_timeout=cfg.tool_timeout,
                 )
+
+                ''' registry '''
                 registry.register(wrapper)
                 registered_count += 1
                 registered_wrapped_names.append(wrapper.name)

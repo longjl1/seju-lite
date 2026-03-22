@@ -1,0 +1,339 @@
+{
+  "meta": {
+    "config_path": "config.json",
+    "dataset_path": "d:\\ProjectsCollection\\locomo\\data\\locomo10.json",
+    "num_samples": 1,
+    "num_questions": 20,
+    "scoring": "LoCoMo task_eval/evaluation.py compatible category-wise F1"
+  },
+  "summary": {
+    "overall_locomo_f1": 0.0035714285714285713,
+    "by_category": {
+      "temporal": {
+        "count": 10,
+        "locomo_f1": 0.0
+      },
+      "open_domain": {
+        "count": 2,
+        "locomo_f1": 0.0
+      },
+      "multi_hop": {
+        "count": 8,
+        "locomo_f1": 0.008928571428571428
+      }
+    }
+  },
+  "results": [
+    {
+      "sample_id": "conv-26",
+      "qa_index": 1,
+      "category_id": 2,
+      "category": "temporal",
+      "question": "When did Caroline go to the LGBTQ support group?",
+      "prompt_used": "When did Caroline go to the LGBTQ support group? Use DATE of CONVERSATION to answer with an approximate date.",
+      "gold_answer": "7 May 2023",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline went to the LGBTQ support group around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about when Caroline attended the support group or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline went to the LGBTQ support group around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about when Caroline attended the support group or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D1:3"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 2,
+      "category_id": 2,
+      "category": "temporal",
+      "question": "When did Melanie paint a sunrise?",
+      "prompt_used": "When did Melanie paint a sunrise? Use DATE of CONVERSATION to answer with an approximate date.",
+      "gold_answer": "2022",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Melanie painted a sunrise around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about when Melanie painted the sunrise or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Melanie painted a sunrise around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about when Melanie painted the sunrise or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D1:12"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 3,
+      "category_id": 3,
+      "category": "open_domain",
+      "question": "What fields would Caroline be likely to pursue in her educaton?",
+      "prompt_used": "What fields would Caroline be likely to pursue in her educaton?",
+      "gold_answer": "Psychology, counseling certification",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** What fields Caroline would be likely to pursue in her education was discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Caroline's educational interests or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** What fields Caroline would be likely to pursue in her education was discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Caroline's educational interests or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D1:9",
+        "D1:11"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 4,
+      "category_id": 1,
+      "category": "multi_hop",
+      "question": "What did Caroline research?",
+      "prompt_used": "What did Caroline research?",
+      "gold_answer": "Adoption agencies",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** What Caroline researched was discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Caroline's research or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** What Caroline researched was discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Caroline's research or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D2:8"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 5,
+      "category_id": 1,
+      "category": "multi_hop",
+      "question": "What is Caroline's identity?",
+      "prompt_used": "What is Caroline's identity?",
+      "gold_answer": "Transgender woman",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline's identity was discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Caroline's identity or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline's identity was discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Caroline's identity or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D1:5"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 6,
+      "category_id": 2,
+      "category": "temporal",
+      "question": "When did Melanie run a charity race?",
+      "prompt_used": "When did Melanie run a charity race? Use DATE of CONVERSATION to answer with an approximate date.",
+      "gold_answer": "The sunday before 25 May 2023",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Melanie ran a charity race around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about when Melanie ran the charity race or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Melanie ran a charity race around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about when Melanie ran the charity race or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D2:1"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 7,
+      "category_id": 2,
+      "category": "temporal",
+      "question": "When is Melanie planning on going camping?",
+      "prompt_used": "When is Melanie planning on going camping? Use DATE of CONVERSATION to answer with an approximate date.",
+      "gold_answer": "June 2023",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Melanie is planning on going camping around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Melanie's camping plans or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Melanie is planning on going camping around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Melanie's camping plans or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D2:7"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 8,
+      "category_id": 1,
+      "category": "multi_hop",
+      "question": "What is Caroline's relationship status?",
+      "prompt_used": "What is Caroline's relationship status?",
+      "gold_answer": "Single",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline's relationship status was discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Caroline's relationship status or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline's relationship status was discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Caroline's relationship status or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D3:13",
+        "D2:14"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 9,
+      "category_id": 2,
+      "category": "temporal",
+      "question": "When did Caroline give a speech at a school?",
+      "prompt_used": "When did Caroline give a speech at a school? Use DATE of CONVERSATION to answer with an approximate date.",
+      "gold_answer": "The week before 9 June 2023",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline gave a speech at a school around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about when Caroline gave the speech or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline gave a speech at a school around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about when Caroline gave the speech or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D3:1"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 10,
+      "category_id": 2,
+      "category": "temporal",
+      "question": "When did Caroline meet up with her friends, family, and mentors?",
+      "prompt_used": "When did Caroline meet up with her friends, family, and mentors? Use DATE of CONVERSATION to answer with an approximate date.",
+      "gold_answer": "The week before 9 June 2023",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline met up with her friends, family, and mentors around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about when Caroline had these meetings or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline met up with her friends, family, and mentors around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about when Caroline had these meetings or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D3:11"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 11,
+      "category_id": 2,
+      "category": "temporal",
+      "question": "How long has Caroline had her current group of friends for?",
+      "prompt_used": "How long has Caroline had her current group of friends for? Use DATE of CONVERSATION to answer with an approximate date.",
+      "gold_answer": "4 years",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline has had her current group of friends since around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about the duration of Caroline's friendships or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline has had her current group of friends since around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about the duration of Caroline's friendships or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D3:13"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 12,
+      "category_id": 1,
+      "category": "multi_hop",
+      "question": "Where did Caroline move from 4 years ago?",
+      "prompt_used": "Where did Caroline move from 4 years ago?",
+      "gold_answer": "Sweden",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline moved from somewhere 4 years ago, which would have been around **March 2022**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about where Caroline moved from or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline moved from somewhere 4 years ago, which would have been around **March 2022**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about where Caroline moved from or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D3:13",
+        "D4:3"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 13,
+      "category_id": 2,
+      "category": "temporal",
+      "question": "How long ago was Caroline's 18th birthday?",
+      "prompt_used": "How long ago was Caroline's 18th birthday? Use DATE of CONVERSATION to answer with an approximate date.",
+      "gold_answer": "10 years ago",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline's 18th birthday was around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Caroline's birthday or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline's 18th birthday was around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Caroline's birthday or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D4:5"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 14,
+      "category_id": 1,
+      "category": "multi_hop",
+      "question": "What career path has Caroline decided to persue?",
+      "prompt_used": "What career path has Caroline decided to persue?",
+      "gold_answer": "counseling or mental health for Transgender people",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline decided on her career path around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Caroline's career decisions or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline decided on her career path around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Caroline's career decisions or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.07142857142857142,
+      "evidence": [
+        "D4:13",
+        "D1:11"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 15,
+      "category_id": 3,
+      "category": "open_domain",
+      "question": "Would Caroline still want to pursue counseling as a career if she hadn't received support growing up?",
+      "prompt_used": "Would Caroline still want to pursue counseling as a career if she hadn't received support growing up?",
+      "gold_answer": "Likely no",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline's interest in pursuing counseling as a career was discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Caroline's career motivations, her personal history, or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline's interest in pursuing counseling as a career was discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Caroline's career motivations, her personal history, or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D4:15",
+        "D3:5"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 16,
+      "category_id": 1,
+      "category": "multi_hop",
+      "question": "What activities does Melanie partake in?",
+      "prompt_used": "What activities does Melanie partake in?",
+      "gold_answer": "pottery, camping, painting, swimming",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Melanie's activities were discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Melanie's activities or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Melanie's activities were discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Melanie's activities or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D5:4",
+        "D9:1",
+        "D1:12",
+        "D1:18"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 17,
+      "category_id": 2,
+      "category": "temporal",
+      "question": "When did Melanie sign up for a pottery class?",
+      "prompt_used": "When did Melanie sign up for a pottery class? Use DATE of CONVERSATION to answer with an approximate date.",
+      "gold_answer": "2 July 2023",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Melanie signed up for a pottery class around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about when Melanie signed up for pottery classes or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Melanie signed up for a pottery class around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about when Melanie signed up for pottery classes or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D5:4"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 18,
+      "category_id": 2,
+      "category": "temporal",
+      "question": "When is Caroline going to the transgender conference?",
+      "prompt_used": "When is Caroline going to the transgender conference? Use DATE of CONVERSATION to answer with an approximate date.",
+      "gold_answer": "July 2023",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline is going to the transgender conference around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about when Caroline is attending the conference or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Caroline is going to the transgender conference around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about when Caroline is attending the conference or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D5:13"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 19,
+      "category_id": 1,
+      "category": "multi_hop",
+      "question": "Where has Melanie camped?",
+      "prompt_used": "Where has Melanie camped?",
+      "gold_answer": "beach, mountains, forest",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Melanie's camping locations were discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about where Melanie has camped or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** Melanie's camping locations were discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about where Melanie has camped or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D6:16",
+        "D4:6",
+        "D8:32"
+      ]
+    },
+    {
+      "sample_id": "conv-26",
+      "qa_index": 20,
+      "category_id": 1,
+      "category": "multi_hop",
+      "question": "What do Melanie's kids like?",
+      "prompt_used": "What do Melanie's kids like?",
+      "gold_answer": "dinosaurs, nature",
+      "pred_answer_raw": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** What Melanie's kids like was discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Melanie's children's preferences or when this was mentioned in the conversation history.",
+      "pred_answer_scored": "Based on the conversation date of **March 22, 2026**, and using the DATE of CONVERSATION to answer with an approximate date:\n\n**Approximate answer:** What Melanie's kids like was discussed around **March 2026**.\n\nThis is based solely on the conversation date, as I don't have access to any specific information about Melanie's children's preferences or when this was mentioned in the conversation history.",
+      "locomo_f1": 0.0,
+      "evidence": [
+        "D6:6",
+        "D4:8"
+      ]
+    }
+  ]
+}

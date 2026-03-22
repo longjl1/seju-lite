@@ -15,6 +15,8 @@ class AgentConfig(BaseModel):
     systemPrompt: str
     maxIterations: int = 8
     maxHistory: int = 12
+    enableSubagent: bool = True
+    subagentMaxIterations: int = 10
     workspace: Path = Path("./workspace")
     enableMemory: bool = True
     enableSkills: bool = True

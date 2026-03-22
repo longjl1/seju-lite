@@ -152,6 +152,9 @@ async def close_app(app: SejuApp) -> None:
     """
     Best-effort shutdown hook.
     """
+    with contextlib.suppress(Exception):
+        await app.agent.subagents.close()
+
     if app.mcp_client_hub is not None:
         with contextlib.suppress(Exception):
             await app.mcp_client_hub.close()
