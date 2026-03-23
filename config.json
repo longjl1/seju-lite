@@ -26,9 +26,9 @@
   },
   "channels": {
     "telegram": {
-      "enabled": false,
+      "enabled": true,
       "token": "${TELEGRAM_BOT_TOKEN}",
-      "allowFrom": ["baekseju2901"],
+      "allowFrom": [],
       "allowGroups": false,
       "groupPolicy": "mention"
     },
@@ -40,7 +40,7 @@
       "allowFrom": []
     },
     "discord": {
-      "enabled": true,
+      "enabled": false,
       "token": "${DISCORD_BOT_TOKEN}",
       "allowFrom": [],
       "groupPolicy": "mention"
@@ -80,6 +80,23 @@
           ],
           "enabledTools": ["*"],
           "toolTimeout": 10
+        },
+        "rag_local": {
+          "type": "stdio",
+          "command": "uv",
+          "args": [
+            "run",
+            "seju-lite",
+            "rag-mcp-server",
+            "--transport",
+            "stdio",
+            "--name",
+            "seju-rag",
+            "--db",
+            "./workspace/rag/rag.db"
+          ],
+          "enabledTools": ["*"],
+          "toolTimeout": 20
         },
         "notion": {
           "type": "stdio",

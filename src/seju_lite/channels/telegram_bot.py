@@ -1,3 +1,5 @@
+import logging
+
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
@@ -13,6 +15,7 @@ class TelegramChannel(BaseChannel):
         super().__init__(bus=bus, allow_from=allow_from)
         self.token = token
         self.app = Application.builder().token(token).build()
+        self.logger = logging.getLogger("seju_lite.channels.telegram")
 
     async def on_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not update.effective_message or not update.effective_chat or not update.effective_user:
@@ -23,15 +26,29 @@ class TelegramChannel(BaseChannel):
         username_with_at = f"@{username}" if username else ""
         # allowFrom supports numeric user id and username (with or without @)
         if self.allow_from:
+            allow_from = {str(item).strip().lower() for item in self.allow_from}
+            user_id_l = user_id.lower()
+            username_l = username.lower()
+            username_with_at_l = username_with_at.lower()
             allowed = (
-                user_id in self.allow_from
-                or (username and username in self.allow_from)
-                or (username_with_at and username_with_at in self.allow_from)
+                user_id_l in allow_from
+                or (username and username_l in allow_from)
+                or (username_with_at and username_with_at_l in allow_from)
             )
             if not allowed:
+                self.logger.info(
+                    "Telegram message ignored by allowFrom: user_id=%s username=%s allowFrom=%s",
+                    user_id,
+                    username or "(none)",
+                    sorted(self.allow_from),
+                )
                 return
 
         text = update.effective_message.text or ""
+        if not text.strip():
+            self.logger.info("Telegram message ignored: empty text from user_id=%s", user_id)
+            return
+
         await self.publish_inbound(
             sender_id=user_id,
             chat_id=str(update.effective_chat.id),

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import typer
 
+from seju_lite.api.server import build_api
 from seju_lite.config.loader import load_config
 from seju_lite.runtime.app import create_app
 from seju_lite.runtime.runner import (
@@ -12,7 +13,9 @@ from seju_lite.runtime.runner import (
     run_cli_chat,
     run_forever,
 )
+from seju_lite.runtime.single_instance import InstanceLock
 from seju_lite.tools.mcp_server import run_mcp_server
+from seju_lite.tools.rag_mcp_server import run_rag_mcp_server
 
 app = typer.Typer(
     help="seju-lite CLI",
@@ -31,11 +34,16 @@ def start_command(
 
 
 async def _start_async(config_path: str) -> None:
-    app_ctx = await create_app(config_path)
+    lock = InstanceLock(Path("./workspace/runtime/start.lock"))
+    lock.acquire()
     try:
-        await run_forever(app_ctx)
+        app_ctx = await create_app(config_path)
+        try:
+            await run_forever(app_ctx)
+        finally:
+            await close_app(app_ctx)
     finally:
-        await close_app(app_ctx)
+        lock.release()
 
 
 @app.command("chat")
@@ -151,3 +159,47 @@ def mcp_server_command(
         read_root=Path(cfg.tools.readFile.rootDir),
         web_max_chars=cfg.tools.web.maxChars,
     )
+
+
+@app.command("rag-mcp-server")
+def rag_mcp_server_command(
+    transport: str = typer.Option(
+        "stdio",
+        "--transport",
+        "-t",
+        help="MCP transport (stdio/sse/streamable-http)",
+    ),
+    name: str = typer.Option("seju-rag", "--name", "-n", help="MCP server name"),
+    db: str = typer.Option(
+        "./workspace/rag/rag.db",
+        "--db",
+        help="SQLite path for RAG index",
+    ),
+) -> None:
+    """
+    Start a lightweight RAG MCP server (SQLite FTS-based).
+    """
+    run_rag_mcp_server(
+        transport=transport,
+        name=name,
+        db_path=Path(db),
+    )
+
+
+@app.command("api")
+def api_command(
+    config: str = typer.Option("config.json", "--config", "-c", help="Path to config.json"),
+    host: str = typer.Option("127.0.0.1", "--host", help="Host to bind"),
+    port: int = typer.Option(8000, "--port", help="Port to bind"),
+    reload: bool = typer.Option(False, "--reload", help="Enable auto reload"),
+) -> None:
+    """
+    Start HTTP API server for frontend/backend integration.
+    """
+    try:
+        import uvicorn
+    except ImportError as exc:
+        raise RuntimeError("uvicorn is required. Install with: uv add uvicorn fastapi") from exc
+
+    api = build_api(config_path=config)
+    uvicorn.run(api, host=host, port=port, reload=reload)

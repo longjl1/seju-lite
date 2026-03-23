@@ -17,3 +17,7 @@ workspace/_test/
 workspace/memory/
 workspace/sessions/
 workspace/sessions.json
+uv.lock
+workspace/rag
+uv.lock
+uv.lock

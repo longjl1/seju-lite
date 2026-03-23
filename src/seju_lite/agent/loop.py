@@ -251,7 +251,7 @@ class AgentLoop:
 
         final_content, all_messages = await self._run_agent_loop(messages)
 
-        self._save_turn(session, all_messages, skip=1 + len(history))
+        self._save_turn(session, all_messages, skip=1 + len(history)) # skip system prompt and history 
         self.sessions.save(session)
         self._schedule_background(self.memory_consolidator.auto_consolidate(session))
         return final_content
