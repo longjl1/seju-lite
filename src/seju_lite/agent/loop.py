@@ -1,12 +1,16 @@
-﻿import json
+﻿import asyncio
+import json
 import logging
+import os
+import sys
 from datetime import datetime
 from pathlib import Path
 
 from seju_lite.agent.context import ContextBuilder
+from seju_lite.agent.memory import MemoryConsolidator
 from seju_lite.agent.subagent import SubagentManager
-from seju_lite.tools.message_helper import MessageHelperTool
 from seju_lite.session.manager import SessionManager
+from seju_lite.tools.message_helper import MessageHelperTool
 from seju_lite.tools.read_file_tool import ReadFileTool
 from seju_lite.tools.registry import ToolRegistry
 from seju_lite.tools.spawn_tool import SpawnTool
@@ -42,6 +46,12 @@ class AgentLoop:
             system_prompt=config.agent.systemPrompt,
         )
         self.sessions = SessionManager(config.storage.sessionFile)
+        self.memory_consolidator = MemoryConsolidator(
+            workspace=self.workspace,
+            sessions=self.sessions,
+            provider=self.provider,
+            max_history=self.config.agent.maxHistory,
+        )
 
         self.tools = ToolRegistry()
         subagent_iterations = getattr(config.agent, "subagentMaxIterations", 10)
@@ -52,6 +62,7 @@ class AgentLoop:
             max_iterations=subagent_iterations,
         )
         self._register_tools()
+        self._background_tasks: list[asyncio.Task] = []
 
     def _register_tools(self):
         def _register_if_missing(tool) -> None:
@@ -64,9 +75,8 @@ class AgentLoop:
             _register_if_missing(ReadFileTool(Path(self.config.tools.readFile.rootDir)))
         if self.config.tools.web.enabled:
             _register_if_missing(WebFetchTool(max_chars=self.config.tools.web.maxChars))
-        ''' 2026.3.20 add more later '''
 
-        #  subagent is tool-driven (spawn tool), not implicit routing.
+        # Subagent is tool-driven (spawn tool), not implicit routing.
         if getattr(self.config.agent, "enableSubagent", True):
             _register_if_missing(SpawnTool(self.subagents))
             _register_if_missing(MessageHelperTool(self.subagents))
@@ -89,6 +99,18 @@ class AgentLoop:
         helper = self.tools.get("message_helper")
         if helper and hasattr(helper, "set_context"):
             helper.set_context(session_key=session_key)
+
+    async def _restart_process(self) -> None:
+        await asyncio.sleep(1)
+        os.execv(sys.executable, [sys.executable, "-m", "seju_lite", *sys.argv[1:]])
+
+    def _schedule_background(self, coro) -> None:
+        task = asyncio.create_task(coro)
+        self._background_tasks.append(task)
+        task.add_done_callback(self._background_tasks.remove)
+
+    async def _archive_snapshot(self, snapshot: list[dict]) -> None:
+        await self.memory_consolidator.archive_messages(snapshot)
 
     async def _run_agent_loop(self, messages):
         max_iterations = self.config.agent.maxIterations
@@ -177,15 +199,41 @@ class AgentLoop:
 
             entry.setdefault("timestamp", datetime.now().isoformat())
             session.messages.append(entry)
-    
-    # 处理msg 
-    async def process_message(self, inbound):
-        # Nanobot-aligned command: stop session background tasks.
-        # if inbound.content.strip().lower() == "/stop":
-        #     cancelled = await self.subagents.cancel_by_session(inbound.session_key)
-        #     return f"Stopped {cancelled} subagent task(s)." if cancelled else "No active subagent task."
 
+    async def process_message(self, inbound):
+        cmd = inbound.content.strip().lower()
         session = self.sessions.get_or_create(inbound.session_key)
+
+        if cmd == "/restart":
+            asyncio.create_task(self._restart_process())
+            return "Restarting..."
+
+        if cmd == "/stop":
+            cancelled = await self.subagents.cancel_by_session(inbound.session_key)
+            return f"Stopped {cancelled} task(s)." if cancelled else "No active task to stop."
+
+        if cmd == "/help":
+            lines = [
+                "seju-lite commands:",
+                "/new — Start a new conversation",
+                "/stop — Stop the current task",
+                "/restart — Restart the bot",
+                "/help — Show available commands",
+            ]
+            return "\n".join(lines)
+
+        if cmd == "/new":
+            snapshot = session.messages[session.last_consolidated:]
+            session.clear()
+            self.sessions.save(session)
+            self.sessions.invalidate(session.key)
+            if snapshot:
+                self._schedule_background(self._archive_snapshot(snapshot))
+            return "New session started."
+
+        # auto consolidation based on num of unconsolidated msg 
+        await self.memory_consolidator.auto_consolidate(session)
+
         history = session.get_history(self.config.agent.maxHistory)
 
         self._set_tool_context(
@@ -205,6 +253,5 @@ class AgentLoop:
 
         self._save_turn(session, all_messages, skip=1 + len(history))
         self.sessions.save(session)
+        self._schedule_background(self.memory_consolidator.auto_consolidate(session))
         return final_content
-
-

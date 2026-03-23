@@ -5,6 +5,8 @@ import asyncio
 from seju_lite.bus.events import OutboundMessage
 from seju_lite.channels.base import BaseChannel
 
+DISCORD_MAX_CONTENT_LEN = 2000
+
 
 class DiscordChannel(BaseChannel):
     name = "discord"
@@ -94,7 +96,25 @@ class DiscordChannel(BaseChannel):
         channel_obj = self._client.get_channel(int(msg.chat_id))
         if channel_obj is None:
             channel_obj = await self._client.fetch_channel(int(msg.chat_id))
-        await channel_obj.send(msg.content)
+        for chunk in self._split_content(msg.content or "", DISCORD_MAX_CONTENT_LEN):
+            await channel_obj.send(chunk)
+
+    @staticmethod
+    def _split_content(content: str, max_len: int) -> list[str]:
+        if len(content) <= max_len:
+            return [content]
+
+        chunks: list[str] = []
+        text = content
+        while len(text) > max_len:
+            cut = text.rfind("\n", 0, max_len + 1)
+            if cut <= 0:
+                cut = max_len
+            chunks.append(text[:cut])
+            text = text[cut:].lstrip("\n")
+        if text:
+            chunks.append(text)
+        return chunks
 
     def _should_respond_in_group(self, message) -> bool:
         if self.group_policy == "open":

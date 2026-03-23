@@ -7,8 +7,8 @@
   "agent": {
     "name": "SejuLite",
     "systemPrompt": "", 
-    "maxIterations": 8,
-    "maxHistory": 12,
+    "maxIterations": 10,
+    "maxHistory": 8,
     "enableSubagent": true,
     "subagentMaxIterations": 10,
     "workspace": "./workspace",
@@ -79,7 +79,7 @@
             "stdio"
           ],
           "enabledTools": ["*"],
-          "toolTimeout": 30
+          "toolTimeout": 10
         },
         "notion": {
           "type": "stdio",
@@ -93,13 +93,7 @@
             "OPENAPI_MCP_HEADERS": "{\"Authorization\":\"Bearer ${NOTION_TOKEN}\",\"Notion-Version\":\"2025-09-03\"}"
           },
           "enabledTools": ["*"],
-          "toolTimeout": 30
-        },
-        "crypto_news": {
-          "type": "sse",
-          "url": "https://plugins.support/sse",
-          "enabledTools": ["*"],
-          "toolTimeout": 30
+          "toolTimeout": 15
         }
       }
     }

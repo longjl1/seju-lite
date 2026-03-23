@@ -1,74 +1,114 @@
-'''
-短期会话历史
-    session：当前对话的短期上下文
-    memory：长期记忆
-'''
-
-import json
-from pathlib import Path
+﻿import json
+import re
 from datetime import datetime
+from pathlib import Path
+
 from pydantic import BaseModel, Field
 
 
 class Session(BaseModel):
     key: str
-
-    # History msg list 
     messages: list[dict] = Field(default_factory=list)
     updated_at: str = Field(default_factory=lambda: datetime.now().isoformat())
-
-    # get the last N msg
-    # 为什么取最后 N 条? -> 因为模型上下文有限，不可能取所有会话历史。
+    last_consolidated: int = 0
 
     def get_history(self, max_messages: int = 12) -> list[dict]:
+        unconsolidated = self.messages[self.last_consolidated:]
         if max_messages <= 0:
-            return self.messages
-        return self.messages[-max_messages:]
+            return unconsolidated
+        return unconsolidated[-max_messages:]
+
+    def clear(self) -> None:
+        self.messages = []
+        self.last_consolidated = 0
+        self.updated_at = datetime.now().isoformat()
 
 
 class SessionManager:
     def __init__(self, session_file: Path) -> None:
         self.session_file = session_file
-        self.session_file.parent.mkdir(parents=True, exist_ok=True)
-        # 内存session dict
+        self.sessions_dir = self._derive_sessions_dir(session_file)
+        self.sessions_dir.mkdir(parents=True, exist_ok=True)
         self._sessions: dict[str, Session] = {}
-        # load old session
-        self._load()
+        self._migrate_legacy_sessions_file()
 
-    def _load(self) -> None:
-        if not self.session_file.exists():
+    @staticmethod
+    def _derive_sessions_dir(session_file: Path) -> Path:
+        # Backward compatibility: "./workspace/sessions.json" -> "./workspace/sessions/"
+        return session_file if session_file.suffix == "" else session_file.parent / session_file.stem
+
+    @staticmethod
+    def _safe_key(key: str) -> str:
+        return re.sub(r"[^A-Za-z0-9_.-]", "_", key)
+
+    def _session_path(self, key: str) -> Path:
+        return self.sessions_dir / f"{self._safe_key(key)}.json"
+
+    def _migrate_legacy_sessions_file(self) -> None:
+        # Legacy format: one JSON file containing all sessions by key.
+        if not self.session_file.exists() or self.session_file.is_dir():
             return
+
         text = self.session_file.read_text(encoding="utf-8").strip()
         if not text:
-            self._sessions = {}
             return
+
         try:
             raw = json.loads(text)
         except json.JSONDecodeError:
-            self._sessions = {}
             return
+
         if not isinstance(raw, dict):
-            self._sessions = {}
             return
-        # dict[str, Session]
-        self._sessions = {
-            k: Session.model_validate(v)
-            for k, v in raw.items()
-        }
 
-    # save 
-    def save_all(self) -> None:
-        data = {k: v.model_dump() for k, v in self._sessions.items()}
-        self.session_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        for key, value in raw.items():
+            try:
+                session = Session.model_validate(value)
+            except Exception:
+                continue
+            session.key = key
+            self._sessions[key] = session
+            self.save(session)
 
-    # get a session
+    def _load_one(self, key: str) -> Session | None:
+        path = self._session_path(key)
+        if not path.exists():
+            return None
+
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            session = Session.model_validate(raw)
+            session.key = key
+            return session
+        except Exception:
+            return None
+
     def get_or_create(self, key: str) -> Session:
-        if key not in self._sessions:
-            self._sessions[key] = Session(key=key)
-        return self._sessions[key]
+        if key in self._sessions:
+            return self._sessions[key]
 
-    # save
+        loaded = self._load_one(key)
+        if loaded is not None:
+            self._sessions[key] = loaded
+            return loaded
+
+        created = Session(key=key)
+        self._sessions[key] = created
+        return created
+
     def save(self, session: Session) -> None:
         session.updated_at = datetime.now().isoformat()
         self._sessions[session.key] = session
-        self.save_all()
+        self._session_path(session.key).write_text(
+            json.dumps(session.model_dump(), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    def clear(self, key: str) -> Session:
+        session = self.get_or_create(key)
+        session.clear()
+        self.save(session)
+        return session
+
+    def invalidate(self, key: str) -> None:
+        self._sessions.pop(key, None)
