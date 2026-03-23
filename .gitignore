@@ -13,10 +13,7 @@ wheels/
 
 # Specific file
 sessions.json
-workspace/_test/memory/HISTORY.md
-workspace/_test/memory/MEMORY.md
-workspace/memory/HISTORY.md
-workspace/memory/MEMORY.md
+workspace/_test/
+workspace/memory/
+workspace/sessions/
 workspace/sessions.json
-workspace/sessions/discord_1484887714506735749.json
-workspace/sessions/discord_1484892259144040529.json
