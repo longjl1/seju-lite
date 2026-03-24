@@ -1,6 +1,6 @@
 # seju.neo
 
-中文 | [English](README.md)
+中文 | [English](README.md) | [反差设计测试](README.contrast-test.md)
 
 <p align="center">
   <img src="assets/banner.svg" alt="Centered image" length= "1600" width="400"/>
@@ -18,6 +18,18 @@
 
 灵感来源：
 - `openclaw/nanobot` → https://github.com/openclaw/nanobot
+
+## 📚 文档导航（带注释）
+
+- `README.md` - 英文主页（稳定说明）
+- `README.zh-CN.md` - 中文主页
+- `README.contrast-test.md` - 反差设计实验页（`SYSTEM + DOODLE`）
+
+为什么是独立页面而不是同页切换：
+
+- GitHub README 是静态 Markdown，不是可交互多语言网站
+- 中英和实验风格混在同一页会让主页信息过载
+- 分页能保持首页清晰，并让每个文档有明确目的
 
 ## 🏗️ 整体架构
 
