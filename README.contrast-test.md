@@ -4,7 +4,9 @@
 >  
 > `SYSTEM (cold)` + `DOODLE (human)` + `HIGH CONTRAST`
 
-![SEJU.NEO Banner](assets/banner.svg)
+<p align="center">
+  <img src="assets/banner.svg" alt="Centered image" length= "1600" width="400"/>
+</p>
 
 ---
 
