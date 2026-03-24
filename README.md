@@ -6,11 +6,11 @@
   <img src="assets/banner.svg" alt="seju.neo banner" length="1600" width="400"/>
 </p>
 
-> A personal lightweight multi-agent framework for practical AI automation.
+> A personal lightweight multi-agent framework for AI automation.
 
 `seju-lite` is the runtime package. `seju.neo` is the product-facing identity.
 
-## Why seju.neo
+## ✨ Why seju.neo
 
 - Lightweight runtime with clear module boundaries.
 - Multi-agent routing (`rule + optional LLM planner`).
@@ -18,9 +18,9 @@
 - Multi-channel support (CLI, API, Discord, Telegram, WhatsApp).
 - Persistent memory with short-term and long-term consolidation.
 
-Inspired by `openclaw/nanobot`: https://github.com/openclaw/nanobot
+Inspired by `openclaw & nanobot`
 
-## Architecture
+## 🏗️ Architecture
 
 Request lifecycle:
 
@@ -38,7 +38,7 @@ Core modules:
 - `src/seju_lite/api`: FastAPI service (`/health`, `/chat`).
 - `src/seju_lite/runtime`: app bootstrap, workers, graceful shutdown.
 
-## Project Structure
+## 📦 Project Structure
 
 ```text
 seju-lite/
@@ -63,12 +63,12 @@ seju-lite/
   config.json
 ```
 
-## Requirements
+## ✅ Requirements
 
 - Python 3.11+
 - `uv` package manager
 
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
 uv sync
@@ -88,7 +88,7 @@ Run API server:
 uv run seju-lite api --config config.json --host 127.0.0.1 --port 8000
 ```
 
-## Environment Variables
+## 🔐 Environment Variables
 
 Set credentials in `.env` (example keys):
 
@@ -107,7 +107,7 @@ Notes:
 - `provider.apiKey` and channel tokens in `config.json` support `${ENV_NAME}` interpolation.
 - `SEJU_API_KEY` enables Bearer auth for `/chat` (health endpoint stays public).
 
-## CLI Commands
+## 🧰 CLI Commands
 
 - `start`: start workers and enabled channels.
 - `chat`: local terminal chat loop.
@@ -125,7 +125,7 @@ Built-in slash commands in chat sessions:
 - `/stop` (cancel running subagent tasks)
 - `/restart`
 
-## Configuration Highlights
+## ⚙️ Configuration Highlights
 
 Main config file: `config.json`
 
@@ -147,9 +147,9 @@ Important sections:
   - built-in tools (`time`, `readFile`, `web`, `shell`)
   - `mcp.servers` (`stdio`, `sse`, `streamableHttp`)
 
-## API Contract
+## 🔌 API Contract
 
-### `GET /health`
+### ❤️ `GET /health`
 
 ```json
 {
@@ -159,7 +159,7 @@ Important sections:
 }
 ```
 
-### `POST /chat`
+### 💬 `POST /chat`
 
 Request:
 
@@ -181,7 +181,7 @@ Response:
 }
 ```
 
-## Memory Model
+## 🧠 Memory Model
 
 - Short-term session history: `workspace/sessions.json`
 - Long-term consolidated memory: `workspace/memory/MEMORY.md`
@@ -193,7 +193,7 @@ Behavior:
 - Consolidator periodically extracts stable facts.
 - Context builder injects memory and skills into prompts.
 
-## MCP Integration
+## 🔗 MCP Integration
 
 Define MCP servers in `tools.mcp.servers` under `config.json`.
 
@@ -208,7 +208,7 @@ Remote MCP tools are wrapped as local function tools:
 
 - naming format: `mcp_<server_name>_<tool_name>`
 
-## Development
+## 🧪 Development
 
 ```bash
 uv run pytest
@@ -222,6 +222,6 @@ Useful logs for routing/tool issues:
 - `seju_lite.agent.orchestrator`
 - `seju_lite.agent`
 
-## Status
+## 📌 Status
 
 Project is under active iteration. Routing, memory, and tooling are intentionally modular for incremental evolution.

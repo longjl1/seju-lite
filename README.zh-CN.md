@@ -6,11 +6,12 @@
   <img src="assets/banner.svg" alt="seju.neo banner" length="1600" width="400"/>
 </p>
 
-> 一个面向实战 AI 自动化的个人轻量多智能体框架。
+> 这是一个轻量级多智能体框架.
 
 `seju-lite` 是运行时包名，`seju.neo` 是产品展示名称。
 
-## 为什么是 seju.neo
+
+## ✨ seju.neo？
 
 - 运行时轻量，模块边界清晰。
 - 支持多智能体路由（规则 + 可选 LLM Planner）。
@@ -18,9 +19,12 @@
 - 多通道接入（CLI、API、Discord、Telegram、WhatsApp）。
 - 持久记忆（短期会话 + 长期归档整合）。
 
-灵感来源：`openclaw/nanobot` https://github.com/openclaw/nanobot
+灵感来源：`openclaw & nanobot` 
 
-## 架构总览
+## 🍤 Update 
+- 2026.3.24 新增路由决策层，选择agent（规则路由 + 可选 LLM planner）派发task
+
+## 🏗️ 架构总览
 
 请求主链路：
 
@@ -38,16 +42,16 @@
 - `src/seju_lite/api`：FastAPI 服务（`/health`、`/chat`）。
 - `src/seju_lite/runtime`：应用启动、worker、优雅关闭。
 
-## 项目结构
+## 📦 项目结构
 
 ```text
-seju-lite/
+seju-lite/                        # root
   assets/
-  src/seju_lite/
-    agent/
-    api/
-    bus/
-    channels/
+  src/seju_lite/                  
+    agent/                        # 智能体
+    api/                          # 封装接口
+    bus/                          # queue
+    channels/                     # 操作平台
     cli/
     config/
     providers/
@@ -56,19 +60,19 @@ seju-lite/
     tools/
     utils/
   tests/
-  workspace/
+  workspace/                       # 记忆+skills
     memory/
     sessions/
     skills/
   config.json
 ```
 
-## 运行要求
+## ✅ 运行要求
 
 - Python 3.11+
 - `uv` 包管理器
 
-## 快速开始
+## 🚀 快速开始
 
 ```bash
 uv sync
@@ -88,7 +92,7 @@ uv run seju-lite start --config config.json
 uv run seju-lite api --config config.json --host 127.0.0.1 --port 8000
 ```
 
-## 环境变量
+## 🔐 环境变量
 
 在 `.env` 中配置凭据（示例键）：
 
@@ -107,7 +111,7 @@ SEJU_API_KEY=
 - `config.json` 中的 `provider.apiKey` 与各通道 token 支持 `${ENV_NAME}` 插值。
 - 设置 `SEJU_API_KEY` 后，`/chat` 需要 Bearer Token，`/health` 保持公开。
 
-## CLI 命令
+## 🧰 CLI 命令
 
 - `start`：启动 worker 与已启用通道。
 - `chat`：本地终端聊天。
@@ -125,7 +129,7 @@ SEJU_API_KEY=
 - `/stop`（停止当前子智能体任务）
 - `/restart`
 
-## 配置重点
+## ⚙️ 配置重点
 
 主配置文件：`config.json`
 
@@ -142,14 +146,15 @@ SEJU_API_KEY=
   - `kind`：`gemini` / `openai_compatible` / `deepseek`
   - 模型、温度、输出 token 等参数
 - `channels`
-  - Telegram / Discord / WhatsApp 开关、凭据、策略
+  - 目前支持 Telegram / Discord / WhatsApp 
+  - soon：webui
 - `tools`
   - 内置工具（`time`、`readFile`、`web`、`shell`）
   - `mcp.servers`（`stdio`、`sse`、`streamableHttp`）
 
-## API 契约
+## 🔌 API
 
-### `GET /health`
+### ❤️ `GET /health`
 
 ```json
 {
@@ -159,7 +164,7 @@ SEJU_API_KEY=
 }
 ```
 
-### `POST /chat`
+### 💬 `POST /chat`
 
 请求：
 
@@ -181,7 +186,7 @@ SEJU_API_KEY=
 }
 ```
 
-## 记忆模型
+## 🧠 记忆模型
 
 - 短期会话历史：`workspace/sessions.json`
 - 长期整合记忆：`workspace/memory/MEMORY.md`
@@ -189,11 +194,11 @@ SEJU_API_KEY=
 
 工作方式：
 
-- 上下文阶段加载最近会话。
+- 上下文阶段加载最近会话 -> session.JSON
 - Consolidator 周期抽取稳定事实。
 - Context Builder 将记忆与技能注入提示词。
 
-## MCP 集成
+## 🔗 MCP 集成
 
 在 `config.json` 的 `tools.mcp.servers` 中配置 MCP 服务。
 
@@ -208,7 +213,7 @@ SEJU_API_KEY=
 
 - 命名格式：`mcp_<server_name>_<tool_name>`
 
-## 开发
+## 🧪 开发
 
 ```bash
 uv run pytest
@@ -222,6 +227,8 @@ uv run mypy src
 - `seju_lite.agent.orchestrator`
 - `seju_lite.agent`
 
-## 状态
+## 📌 状态
 
+> 当前新增LLM planner (决策层)
 项目持续迭代中。路由、记忆、工具层均保持模块化，便于逐步演进。
+
