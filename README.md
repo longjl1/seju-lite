@@ -2,7 +2,10 @@
 
 [中文](README.zh-CN.md) | English | [What is neo/seju/cat?](README.contrast-test)
 
-![seju.neo banner](assets/banner.svg)
+<p align="center">
+  <img src="assets/banner.svg" alt="Centered image" length= "400" width="100"/>
+</p>
+<!-- ![seju.neo banner](assets/banner.svg) -->
 
 > 🧩 A personal, lightweight multi-agent framework for pragmatic AI automation.
 
