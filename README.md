@@ -1,4 +1,4 @@
-![seju.neo](assets/banner.svg)
+![seju.neo](assets/banner.png)
 
 # Seju Lite
 
