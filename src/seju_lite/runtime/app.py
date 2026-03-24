@@ -9,6 +9,9 @@ from typing import Any, Callable
 from dotenv import load_dotenv
 
 from seju_lite.agent.loop import AgentLoop
+from seju_lite.agent.orchestrator import AgentOrchestrator
+from seju_lite.agent.registry import build_default_registry
+from seju_lite.agent.workflow_orchestrator import WorkflowOrchestrator
 from seju_lite.bus.queue import MessageBus
 from seju_lite.channels.registry import discover_all as discover_channels
 from seju_lite.config.loader import load_config
@@ -27,6 +30,8 @@ class SejuApp:
     bus: MessageBus
     provider: LLMProvider
     agent: AgentLoop
+    orchestrator: AgentOrchestrator
+    workflow_orchestrator: WorkflowOrchestrator
     channels: dict[str, Any]
     mcp_client_hub: MCPClientHub | None = None
 
@@ -102,6 +107,19 @@ async def create_app(config_path: str | Path) -> SejuApp:
     bus = MessageBus()
     provider = build_provider(config)
     agent = AgentLoop(config=config, provider=provider, bus=bus)
+    agent_registry = build_default_registry(agent)
+    orchestrator = AgentOrchestrator(
+        agents=agent_registry,
+        mode=config.agent.mode,
+        default_agent=config.agent.defaultAgent,
+        routing=config.agent.routing,
+    )
+    workflow_orchestrator = WorkflowOrchestrator(
+        orchestrator,
+        provider=provider,
+        enable_llm_planner=config.agent.enableLlmPlanner,
+        planner_confidence_threshold=config.agent.plannerConfidenceThreshold,
+    )
     mcp_client_hub: MCPClientHub | None = None
 
     """ start mcp client @ start """
@@ -156,6 +174,8 @@ async def create_app(config_path: str | Path) -> SejuApp:
         bus=bus,
         provider=provider,
         agent=agent,
+        orchestrator=orchestrator,
+        workflow_orchestrator=workflow_orchestrator,
         channels=channel_instances,
         mcp_client_hub=mcp_client_hub,
     )

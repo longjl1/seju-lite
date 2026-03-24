@@ -1,4 +1,4 @@
-{
+﻿{
   "app": {
     "name": "seju-lite",
     "env": "dev",
@@ -6,11 +6,19 @@
   },
   "agent": {
     "name": "SejuLite",
-    "systemPrompt": "", 
-    "maxIterations": 10,
+    "systemPrompt": "",
+    "mode": "multi",
+    "defaultAgent": "local",
+    "enableLlmPlanner": true,
+    "plannerConfidenceThreshold": 0.65,
+    "routing": {
+      "local": ["local", "本地", "文件", "memory", "notion", "写入", "读取"],
+      "web": ["web", "网页", "网站", "url", "http", "https", "新闻", "搜索", "总结"]
+    },
+    "maxIterations": 15,
     "maxHistory": 8,
     "enableSubagent": true,
-    "subagentMaxIterations": 10,
+    "subagentMaxIterations": 12,
     "workspace": "./workspace",
     "enableMemory": true,
     "enableSkills": true,
@@ -26,7 +34,7 @@
   },
   "channels": {
     "telegram": {
-      "enabled": true,
+      "enabled": false,
       "token": "${TELEGRAM_BOT_TOKEN}",
       "allowFrom": [],
       "allowGroups": false,
@@ -40,7 +48,7 @@
       "allowFrom": []
     },
     "discord": {
-      "enabled": false,
+      "enabled": true,
       "token": "${DISCORD_BOT_TOKEN}",
       "allowFrom": [],
       "groupPolicy": "mention"
@@ -111,6 +119,16 @@
           },
           "enabledTools": ["*"],
           "toolTimeout": 15
+        },
+        "playwright": {
+          "type": "stdio",
+          "command": "npx.cmd",
+          "args": [
+            "-y",
+            "@playwright/mcp@latest"
+          ],
+          "enabledTools": ["*"],
+          "toolTimeout": 30
         }
       }
     }

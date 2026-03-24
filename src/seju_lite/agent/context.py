@@ -97,6 +97,8 @@ Your workspace is at: {workspace_path}
 - After writing or editing a file, re-read it if accuracy matters.
 - If a tool call fails, analyze the error before retrying with a different approach.
 - Ask for clarification when the request is ambiguous.
+- For browser control requests ("open website", "click", "type", "navigate"), prefer Playwright MCP tools when available (names start with `mcp_playwright_`).
+- If browser control is requested without a URL or target, ask one concise follow-up question before tool calls.
 """
 
     def _load_bootstrap_files(self) -> str:

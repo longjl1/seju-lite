@@ -8,7 +8,7 @@ import logging
 import uuid
 from typing import Any
 
-from seju_lite.bus.events import InboundMessage
+from seju_lite.bus.events import OutboundMessage
 from seju_lite.tools.registry import ToolRegistry
 
 
@@ -200,35 +200,18 @@ class SubagentManager:
 
         status_text = "completed successfully" if status == "ok" else "failed"
         content = (
-            f"""[Subagent '{label}' {status_text}]
-Task: {task}
-
-Result: 
-{result}
-
-" Use natural language summarize this for the user in 1-2 sentences. 
-Do not mention subagent IDs or internal execution details."""
+            f"[Subagent '{label}' {status_text}]\n"
+            f"Task: {task}\n\n"
+            f"Result:\n{result}"
         )
 
-        msg = InboundMessage(
+        msg = OutboundMessage(
             channel=origin_channel,
-            sender_id="subagent",
             chat_id=origin_chat_id,
             content=content,
             metadata={"subagent_task_id": task_id},
         )
-        await self.bus.publish_inbound(msg)
-
-
-
-    """
-    注：
-    content ->  InboundMessage -> inbound queue -> runner.py inbound_worker() 
-     
-    -> app.agent.process_message(inbound) -> AgentLoop 把这段 content 当作新一轮输入发给主模型
-
-    -> LLM 生成自然语言总结 -> inbound_worker 再发到 outbound，最终由APP发送给用户
-     """
+        await self.bus.publish_outbound(msg)
 
     async def cancel_by_session(self, session_key: str) -> int:
         task_ids = list(self._session_tasks.get(session_key, set()))

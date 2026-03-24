@@ -13,6 +13,11 @@ class AppConfig(BaseModel):
 class AgentConfig(BaseModel):
     name: str = "SejuLite"
     systemPrompt: str
+    mode: Literal["single", "multi"] = "single"
+    defaultAgent: str = "main"
+    routing: dict[str, list[str]] = Field(default_factory=dict)
+    enableLlmPlanner: bool = False
+    plannerConfidenceThreshold: float = 0.65
     maxIterations: int = 8
     maxHistory: int = 12
     enableSubagent: bool = True

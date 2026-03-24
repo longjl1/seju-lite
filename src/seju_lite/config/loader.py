@@ -23,6 +23,7 @@ def _expand_env(value):
 
 def load_config(path: str | Path) -> RootConfig:
     path = Path(path)
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    # Use utf-8-sig to tolerate BOM-prefixed JSON files on Windows.
+    raw = json.loads(path.read_text(encoding="utf-8-sig"))
     expanded = _expand_env(raw)
     return RootConfig.model_validate(expanded)

@@ -10,6 +10,62 @@ from seju_lite.runtime.app import SejuApp
 logger = logging.getLogger("seju_lite.runtime")
 
 
+def _enter_cli_quiet_mode() -> dict[str, int | bool]:
+    """Reduce noisy third-party logs in interactive CLI chat."""
+    targets = [
+        "LiteLLM",
+        "httpx",
+        "httpcore",
+        "openai",
+        "asyncio",
+    ]
+    prev_levels: dict[str, int] = {}
+    for name in targets:
+        lg = logging.getLogger(name)
+        prev_levels[name] = lg.level
+        lg.setLevel(logging.WARNING)
+
+    state: dict[str, int | bool] = {"_enabled": True, **prev_levels}
+
+    # Best-effort: silence LiteLLM verbose prints if available.
+    try:
+        import litellm  # type: ignore
+
+        state["litellm_set_verbose"] = bool(getattr(litellm, "set_verbose", False))
+        state["litellm_suppress_debug_info"] = bool(
+            getattr(litellm, "suppress_debug_info", False)
+        )
+        if hasattr(litellm, "set_verbose"):
+            litellm.set_verbose = False
+        if hasattr(litellm, "suppress_debug_info"):
+            litellm.suppress_debug_info = True
+    except Exception:
+        state["litellm_set_verbose"] = False
+        state["litellm_suppress_debug_info"] = False
+
+    return state
+
+
+def _exit_cli_quiet_mode(state: dict[str, int | bool]) -> None:
+    if not state:
+        return
+
+    for name, level in state.items():
+        if name.startswith("_") or name.startswith("litellm_"):
+            continue
+        logging.getLogger(name).setLevel(int(level))
+
+    try:
+        import litellm  # type: ignore
+
+        if "litellm_set_verbose" in state and hasattr(litellm, "set_verbose"):
+            litellm.set_verbose = bool(state["litellm_set_verbose"])
+        if "litellm_suppress_debug_info" in state and hasattr(litellm, "suppress_debug_info"):
+            litellm.suppress_debug_info = bool(state["litellm_suppress_debug_info"])
+    except Exception:
+        pass
+
+
 def _format_runtime_error(exc: Exception) -> str:
     msg = str(exc).lower()
     if "503" in msg or "unavailable" in msg or "high demand" in msg:
@@ -36,7 +92,7 @@ async def inbound_worker(app: SejuApp) -> None:
         )
 
         try:
-            reply = await app.agent.process_message(inbound)
+            reply = await app.workflow_orchestrator.handle(inbound)
         except Exception as exc:
             logger.exception("Failed to process inbound message")
             reply = _format_runtime_error(exc)
@@ -106,46 +162,50 @@ async def run_forever(app: SejuApp) -> None:
 async def run_cli_chat(app: SejuApp, session_key: str = "cli:local") -> None:
     """
     Local terminal chat loop for development.
-    Reuses the same AgentLoop, but bypasses Telegram/bus.
+    Reuses the same orchestrator path, but bypasses Telegram/bus.
     """
     logger.info("Starting CLI chat session: %s", session_key)
     print("seju-lite CLI chat")
     print("Type /exit to quit.\n")
+    quiet_state = _enter_cli_quiet_mode()
 
     if ":" in session_key:
         channel, chat_id = session_key.split(":", 1)
     else:
         channel, chat_id = "cli", session_key
 
-    while True:
-        try:
-            user_text = await asyncio.to_thread(input, "You > ")
-        except (EOFError, KeyboardInterrupt):
-            print("\nBye.")
-            return
+    try:
+        while True:
+            try:
+                user_text = await asyncio.to_thread(input, "You > ")
+            except (EOFError, KeyboardInterrupt):
+                print("\nBye.")
+                return
 
-        if not user_text.strip():
-            continue
+            if not user_text.strip():
+                continue
 
-        if user_text.strip().lower() in {"/exit", "exit", "quit"}:
-            print("Bye.")
-            return
+            if user_text.strip().lower() in {"/exit", "exit", "quit"}:
+                print("Bye.")
+                return
 
-        inbound = InboundMessage(
-            channel=channel,
-            sender_id="local-user",
-            chat_id=chat_id,
-            content=user_text,
-            metadata={},
-        )
+            inbound = InboundMessage(
+                channel=channel,
+                sender_id="local-user",
+                chat_id=chat_id,
+                content=user_text,
+                metadata={},
+            )
 
-        try:
-            reply = await app.agent.process_message(inbound)
-        except Exception as exc:
-            logger.exception("CLI chat failed")
-            reply = _format_runtime_error(exc)
+            try:
+                reply = await app.workflow_orchestrator.handle(inbound)
+            except Exception as exc:
+                logger.exception("CLI chat failed")
+                reply = _format_runtime_error(exc)
 
-        print(f"Bot > {reply}\n")
+            print(f"Bot > {reply}\n")
+    finally:
+        _exit_cli_quiet_mode(quiet_state)
 
 
 async def close_app(app: SejuApp) -> None:

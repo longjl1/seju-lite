@@ -6,6 +6,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from seju_lite.agent.command_router import CommandRouter
 from seju_lite.agent.context import ContextBuilder
 from seju_lite.agent.memory import MemoryConsolidator
 from seju_lite.agent.subagent import SubagentManager
@@ -63,6 +64,14 @@ class AgentLoop:
         )
         self._register_tools()
         self._background_tasks: list[asyncio.Task] = []
+        self.command_router = CommandRouter(
+            sessions=self.sessions,
+            subagents=self.subagents,
+            schedule_restart=lambda: asyncio.create_task(self._restart_process()),
+            schedule_archive=lambda snapshot: self._schedule_background(
+                self._archive_snapshot(snapshot)
+            ),
+        )
 
     def _register_tools(self):
         def _register_if_missing(tool) -> None:
@@ -112,15 +121,26 @@ class AgentLoop:
     async def _archive_snapshot(self, snapshot: list[dict]) -> None:
         await self.memory_consolidator.archive_messages(snapshot)
 
-    async def _run_agent_loop(self, messages):
+    @staticmethod
+    def _extract_tool_name(tool_def: dict) -> str:
+        return str(tool_def.get("function", {}).get("name", "")).strip()
+
+    def _filter_tool_defs(self, allowed_tool_names: set[str] | None) -> list[dict]:
+        defs = self.tools.get_definitions()
+        if not allowed_tool_names:
+            return defs
+        return [d for d in defs if self._extract_tool_name(d) in allowed_tool_names]
+
+    async def _run_agent_loop(self, messages, allowed_tool_names: set[str] | None = None):
         max_iterations = self.config.agent.maxIterations
         final_content = None
+        tool_defs = self._filter_tool_defs(allowed_tool_names)
 
         for idx in range(max_iterations):
             self.logger.info("Agent loop iteration %s/%s", idx + 1, max_iterations)
             response = await self.provider.generate(
                 messages=messages,
-                tools=self.tools.get_definitions(),
+                tools=tool_defs,
             )
 
             if response.has_tool_calls:
@@ -141,7 +161,13 @@ class AgentLoop:
                     if len(args_preview) > 500:
                         args_preview = args_preview[:500] + "...(truncated)"
                     self.logger.info("Calling tool: %s args=%s", tc.name, args_preview)
-                    result = await self.tools.execute(tc.name, tc.arguments)
+                    if allowed_tool_names and tc.name not in allowed_tool_names:
+                        result = (
+                            f"Tool '{tc.name}' is not available in this agent profile. "
+                            "Choose a permitted tool or provide a direct response."
+                        )
+                    else:
+                        result = await self.tools.execute(tc.name, tc.arguments)
                     result_preview = result.replace("\n", " ")
                     if len(result_preview) > 300:
                         result_preview = result_preview[:300] + "...(truncated)"
@@ -200,39 +226,17 @@ class AgentLoop:
             entry.setdefault("timestamp", datetime.now().isoformat())
             session.messages.append(entry)
 
-    async def process_message(self, inbound):
-        cmd = inbound.content.strip().lower()
+    async def process_message(self, inbound, tool_allowlist: set[str] | None = None):
+        workflow_internal = bool(inbound.metadata.get("workflow_internal"))
         session = self.sessions.get_or_create(inbound.session_key)
-
-        if cmd == "/restart":
-            asyncio.create_task(self._restart_process())
-            return "Restarting..."
-
-        if cmd == "/stop":
-            cancelled = await self.subagents.cancel_by_session(inbound.session_key)
-            return f"Stopped {cancelled} task(s)." if cancelled else "No active task to stop."
-
-        if cmd == "/help":
-            lines = [
-                "seju-lite commands:",
-                "/new — Start a new conversation",
-                "/stop — Stop the current task",
-                "/restart — Restart the bot",
-                "/help — Show available commands",
-            ]
-            return "\n".join(lines)
-
-        if cmd == "/new":
-            snapshot = session.messages[session.last_consolidated:]
-            session.clear()
-            self.sessions.save(session)
-            self.sessions.invalidate(session.key)
-            if snapshot:
-                self._schedule_background(self._archive_snapshot(snapshot))
-            return "New session started."
+        if not workflow_internal:
+            command_result = await self.command_router.handle(content=inbound.content, session=session)
+            if command_result is not None:
+                return command_result
 
         # auto consolidation based on num of unconsolidated msg 
-        await self.memory_consolidator.auto_consolidate(session)
+        if not workflow_internal:
+            await self.memory_consolidator.auto_consolidate(session)
 
         history = session.get_history(self.config.agent.maxHistory)
 
@@ -249,9 +253,13 @@ class AgentLoop:
             chat_id=inbound.chat_id,
         )
 
-        final_content, all_messages = await self._run_agent_loop(messages)
+        final_content, all_messages = await self._run_agent_loop(
+            messages,
+            allowed_tool_names=tool_allowlist,
+        )
 
-        self._save_turn(session, all_messages, skip=1 + len(history)) # skip system prompt and history 
-        self.sessions.save(session)
-        self._schedule_background(self.memory_consolidator.auto_consolidate(session))
+        if not workflow_internal:
+            self._save_turn(session, all_messages, skip=1 + len(history)) # skip system prompt and history
+            self.sessions.save(session)
+            self._schedule_background(self.memory_consolidator.auto_consolidate(session))
         return final_content
