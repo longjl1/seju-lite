@@ -1,3 +1,5 @@
+![seju.neo](assets/logo_banner.svg)
+
 # Seju Lite
 
 A lightweight Telegram-first AI assistant inspired by nanobot.
