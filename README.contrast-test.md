@@ -23,10 +23,7 @@ SEJU.NEO is a **personal lightweight multi-agent framework** built on contrast:
 ## 🧩 Core Formula
 
 ```text
-A (System / Cold)
-+ B (Emotion / Chaos / Cute / Human)
-+ High-Contrast Visual Language
-= SEJU.NEO
+A (System / Cold) + B (Emotion / Chaos / Cute / Human) + High-Contrast Visual Language = SEJU.NEO
 ```
 
 ---
