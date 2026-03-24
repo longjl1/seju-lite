@@ -2,7 +2,9 @@
 
 中文 | [English](README.md)
 
-![seju.neo banner](assets/banner.svg)
+<p align="center">
+  <img src="assets/banner.svg" alt="Centered image" length= "1600" width="400"/>
+</p>
 
 > 🧩 一个面向个人开发的轻量级多智能体框架（personal lightweight multi-agent framework）。
 
