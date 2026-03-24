@@ -6,58 +6,39 @@
   <img src="assets/banner.svg" alt="seju.neo banner" length="1600" width="400"/>
 </p>
 
-> 🧩 A personal lightweight multi-agent framework for practical AI automation.
+> A personal lightweight multi-agent framework for practical AI automation.
 
-`seju.neo` focuses on one goal: make agent systems easier to build, run, and evolve in real projects.
+`seju-lite` is the runtime package. `seju.neo` is the product-facing identity.
 
-## ✨ Why seju.neo
+## Why seju.neo
 
-- **Lightweight core**: small runtime surface, less framework overhead.
-- **Multi-agent ready**: workflow routing + execution orchestration.
-- **Tool-centric**: local tools + MCP servers for external capabilities.
-- **Channel friendly**: API, Discord, Telegram, WhatsApp adapters.
-- **Persistent memory**: session history + long-term memory workflow.
+- Lightweight runtime with clear module boundaries.
+- Multi-agent routing (`rule + optional LLM planner`).
+- Tool-first design (built-in tools + MCP servers).
+- Multi-channel support (CLI, API, Discord, Telegram, WhatsApp).
+- Persistent memory with short-term and long-term consolidation.
 
-Inspired by:
-- `openclaw/nanobot` → https://github.com/openclaw/nanobot
+Inspired by `openclaw/nanobot`: https://github.com/openclaw/nanobot
 
-## 📚 Docs Map (Annotated)
+## Architecture
 
-- `README.md` - main homepage (English, production overview)
-- `README.zh-CN.md` - Chinese main homepage
-- `README.contrast-test.md` - contrast-design documentation experiment
+Request lifecycle:
 
-Why separate pages:
+1. Ingress receives user input (`channel` or `API`).
+2. `WorkflowOrchestrator` decides route.
+3. `AgentOrchestrator` dispatches execution.
+4. `AgentLoop` builds context, runs tool loop, stores session/memory.
+5. Egress returns final response.
 
-- GitHub README is static markdown (no built-in dynamic i18n switch).
-- Mixing EN/ZH + experimental style in one page hurts readability.
-- Split pages keep each document focused and maintainable.
+Core modules:
 
-## 🏗️ Architecture
+- `src/seju_lite/agent`: context, loop, orchestration, memory, subagent.
+- `src/seju_lite/tools`: built-in tools, MCP client/server, RAG MCP server.
+- `src/seju_lite/channels`: Discord/Telegram/WhatsApp adapters.
+- `src/seju_lite/api`: FastAPI service (`/health`, `/chat`).
+- `src/seju_lite/runtime`: app bootstrap, workers, graceful shutdown.
 
-Execution flow:
-
-1. **Ingress** receives a user message (channel or HTTP API).
-2. **WorkflowOrchestrator** selects route (`rule` + optional `LLM planner`).
-3. **AgentOrchestrator** dispatches to selected agent and records telemetry.
-4. **AgentLoop** builds context, runs tool loop, persists history/memory.
-5. **Egress** returns the final reply.
-
-Key runtime layers:
-
-- `src/seju_lite/agent`
-  - `workflow_orchestrator.py` - workflow-level route decision
-  - `orchestrator.py` - dispatch, timing, execution context
-  - `loop.py` - context/LLM/tool loop, session save, memory consolidation
-  - `context.py` - system prompt and runtime context assembly
-- `src/seju_lite/tools`
-  - built-in tools + MCP client bridge
-- `src/seju_lite/channels`
-  - channel adapters (Discord/Telegram/WhatsApp)
-- `src/seju_lite/api`
-  - FastAPI adapter for frontend/backend integration
-
-## 📦 Project Structure
+## Project Structure
 
 ```text
 seju-lite/
@@ -67,11 +48,13 @@ seju-lite/
     api/
     bus/
     channels/
+    cli/
     config/
     providers/
     runtime/
     session/
     tools/
+    utils/
   tests/
   workspace/
     memory/
@@ -80,23 +63,16 @@ seju-lite/
   config.json
 ```
 
-## 🚀 Quick Start
-
-Requirements:
+## Requirements
 
 - Python 3.11+
 - `uv` package manager
 
-Install and validate:
+## Quick Start
 
 ```bash
 uv sync
 uv run seju-lite config-validate --config config.json
-```
-
-Run local CLI chat:
-
-```bash
 uv run seju-lite chat --config config.json --session cli:local
 ```
 
@@ -112,40 +88,68 @@ Run API server:
 uv run seju-lite api --config config.json --host 127.0.0.1 --port 8000
 ```
 
-## 🧰 CLI Reference
+## Environment Variables
 
-- `start` - run inbound/outbound workers + enabled channels
-- `chat` - local terminal chat loop
-- `api` - launch HTTP API for frontend use
-- `config-validate` - validate `config.json`
-- `tool-list` - print runtime tool registry
-- `test-provider` - direct LLM provider sanity check
-- `mcp-server` - local built-in MCP server (`time/read_file/web_fetch`)
-- `rag-mcp-server` - local RAG MCP server (SQLite FTS)
+Set credentials in `.env` (example keys):
 
-## ⚙️ Configuration Highlights
+```dotenv
+DEEPSEEK_API_KEY=
+GEMINI_API_KEY=
+DISCORD_BOT_TOKEN=
+TELEGRAM_BOT_TOKEN=
+NOTION_TOKEN=
+OPENAI_COMPATIBLE_BASE_URL=
+SEJU_API_KEY=
+```
+
+Notes:
+
+- `provider.apiKey` and channel tokens in `config.json` support `${ENV_NAME}` interpolation.
+- `SEJU_API_KEY` enables Bearer auth for `/chat` (health endpoint stays public).
+
+## CLI Commands
+
+- `start`: start workers and enabled channels.
+- `chat`: local terminal chat loop.
+- `api`: start HTTP API server.
+- `config-validate`: validate `config.json`.
+- `tool-list`: list registered tools.
+- `test-provider`: direct LLM provider check.
+- `mcp-server`: expose built-in tools as an MCP server.
+- `rag-mcp-server`: start SQLite FTS based RAG MCP server.
+
+Built-in slash commands in chat sessions:
+
+- `/help`
+- `/new` (reset short-term history, keep long-term memory)
+- `/stop` (cancel running subagent tasks)
+- `/restart`
+
+## Configuration Highlights
 
 Main config file: `config.json`
 
-Important blocks:
+Important sections:
 
 - `agent`
   - `mode`: `single` or `multi`
   - `defaultAgent`
   - `enableLlmPlanner`, `plannerConfidenceThreshold`
+  - `enableSubagent`, `subagentMaxIterations`
   - `maxIterations`, `maxHistory`
+  - `workspace`, `enableMemory`, `enableSkills`, `enableTools`
 - `provider`
-  - model/provider settings (`deepseek`, `gemini`, etc.)
+  - `kind`: `gemini` / `openai_compatible` / `deepseek`
+  - model + temperature + output token settings
 - `channels`
-  - telegram/discord/whatsapp enable + credentials
-- `tools.mcp.servers`
-  - external MCP server definitions (`stdio`, `sse`, `streamableHttp`)
+  - Telegram / Discord / WhatsApp enable + credentials + policy
+- `tools`
+  - built-in tools (`time`, `readFile`, `web`, `shell`)
+  - `mcp.servers` (`stdio`, `sse`, `streamableHttp`)
 
-## 🔌 API Contract
+## API Contract
 
 ### `GET /health`
-
-Response:
 
 ```json
 {
@@ -177,60 +181,47 @@ Response:
 }
 ```
 
-## 🧠 Memory Model
+## Memory Model
 
-`seju.neo` combines short-term and long-term memory:
+- Short-term session history: `workspace/sessions.json`
+- Long-term consolidated memory: `workspace/memory/MEMORY.md`
+- Historical digest: `workspace/memory/HISTORY.md`
 
-- **Session history** in `workspace/sessions/*.json`
-- **Consolidated memory** in `workspace/memory/MEMORY.md`
-- **Long-range history summary** in `workspace/memory/HISTORY.md`
+Behavior:
 
-General pattern:
-
-- Session stores recent turn-level dialogue.
+- Recent turns are loaded for context.
 - Consolidator periodically extracts stable facts.
-- Context builder injects relevant memory into system/user context.
+- Context builder injects memory and skills into prompts.
 
-## 🔗 MCP Integration
+## MCP Integration
 
-MCP servers are registered under `tools.mcp.servers` in `config.json`.
+Define MCP servers in `tools.mcp.servers` under `config.json`.
 
-Built-in examples already used in this repo:
+This repository includes examples for:
 
 - local utility MCP server
 - local RAG MCP server
 - Notion MCP server
+- Playwright MCP server
 
-At runtime, each remote MCP tool is wrapped and exposed as local tool names:
+Remote MCP tools are wrapped as local function tools:
 
-- format: `mcp_<server_name>_<tool_name>`
+- naming format: `mcp_<server_name>_<tool_name>`
 
-## 🧪 Development Tips
+## Development
 
-- Use `chat` mode for fast iteration.
-- Keep `config-validate` in your edit loop.
-- Prefer adding one MCP server/tool set at a time.
-- For workflow tuning, monitor logs from:
-  - `seju_lite.agent.workflow`
-  - `seju_lite.agent.orchestrator`
-  - `seju_lite.agent`
+```bash
+uv run pytest
+uv run ruff check .
+uv run mypy src
+```
 
-## 🛠️ Troubleshooting
+Useful logs for routing/tool issues:
 
-- **No tool calls happen**
-  - Check agent/tool allowlist logic and MCP tool registration logs.
-- **Telegram conflict (`getUpdates`)**
-  - Ensure only one bot process is polling at a time.
-- **Slow responses**
-  - Lower `maxIterations`
-  - reduce unnecessary tools
-  - switch to faster model for routing/simple tasks
-- **MCP connect failures**
-  - verify command/args
-  - verify auth env vars
-  - check transport type (`stdio/sse/streamableHttp`)
+- `seju_lite.agent.workflow`
+- `seju_lite.agent.orchestrator`
+- `seju_lite.agent`
 
-## 📌 Status
+## Status
 
-`seju.neo` is under active iteration.  
-Architecture is intentionally modular so routing, memory, and tool layers can evolve independently.
+Project is under active iteration. Routing, memory, and tooling are intentionally modular for incremental evolution.

@@ -5,12 +5,12 @@
 > `SYSTEM (cold)` + `DOODLE (human)` + `HIGH CONTRAST`
 
 <p align="center">
-  <img src="assets/banner.svg" alt="Centered image" length= "1600" width="400"/>
+  <img src="assets/banner.svg" alt="seju.neo banner" length= "1600" width="400"/>
 </p>
 
 ---
 
-## 🧊 + 🎨 Design DNA
+## Design DNA
 
 SEJU.NEO is a **personal lightweight multi-agent framework** built on contrast:
 
@@ -20,7 +20,7 @@ SEJU.NEO is a **personal lightweight multi-agent framework** built on contrast:
 
 ---
 
-## 🧩 Core Formula
+## Core Formula
 
 ```text
 A (System / Cold) + B (Emotion / Chaos / Cute / Human) + High-Contrast Visual Language = SEJU.NEO
@@ -28,7 +28,7 @@ A (System / Cold) + B (Emotion / Chaos / Cute / Human) + High-Contrast Visual La
 
 ---
 
-## ⚙️ Architecture (System)
+## Architecture (System)
 
 ```text
 Ingress (API / Channel)
@@ -45,7 +45,7 @@ Ingress (API / Channel)
 
 ---
 
-## ✏️ Doodle Layer (Human)
+## Doodle Layer (Human)
 
 > little notes from the machine:
 >
@@ -54,14 +54,24 @@ Ingress (API / Channel)
 > - "I am not a giant framework. I am your fast, hackable companion."
 
 ```text
-  (• ◡ •)  "system on the outside"
+  (^_^)/  "system on the outside"
    /|_|\   "human in the loop"
     / \
 ```
 
 ---
 
-## 🚀 Quick Test
+## Tone Examples
+
+> "Structure first. Warmth always."
+>  
+> "I route with logic, and I speak like a teammate."
+>  
+> "Small framework, fast loops, human feel."
+
+---
+
+## Quick Test
 
 ```bash
 uv sync
@@ -77,17 +87,18 @@ uv run seju-lite api --config config.json --host 127.0.0.1 --port 8000
 
 ---
 
-## 🧪 Why This README Exists
+## Why This README Exists
 
 This file is a **contrast-design README experiment**.
 
 - Keeps current production README untouched
 - Tests `SYSTEM + DOODLE` brand direction
 - Serves as a style prototype for future docs/site
+- `README.md` is the production usage page (`how to use`)
+- This file is the brand and design page (`why it feels this way`)
 
 ---
 
-## 🔗 Reference
+## Reference
 
 - Inspired by `openclaw/nanobot`: https://github.com/openclaw/nanobot
-
