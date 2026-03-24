@@ -3,7 +3,7 @@
 [中文](README.zh-CN.md) | English | [Contrast Test](README.contrast-test.md)
 
 <p align="center">
-  <img src="assets/banner.svg" alt="seju.neo banner" width="760"/>
+  <img src="assets/banner.svg" alt="seju.neo banner" length="1600" width="400"/>
 </p>
 
 > 🧩 A personal lightweight multi-agent framework for practical AI automation.
