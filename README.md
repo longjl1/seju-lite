@@ -3,7 +3,7 @@
 [中文](README.zh-CN.md) | English | [What is neo/seju/cat?](README.contrast-test)
 
 <p align="center">
-  <img src="assets/banner.svg" alt="Centered image" length= "400" width="100"/>
+  <img src="assets/banner.svg" alt="Centered image" length= "1600" width="400"/>
 </p>
 <!-- ![seju.neo banner](assets/banner.svg) -->
 
