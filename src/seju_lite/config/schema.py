@@ -29,7 +29,7 @@ class AgentConfig(BaseModel):
 
 
 class ProviderConfig(BaseModel):
-    kind: Literal["gemini", "openai_compatible", "deepseek", "litellm_deepseek"] = "gemini"
+    kind: Literal["gemini", "openai_compatible", "deepseek"] = "gemini"
     apiKey: str
     apiBase: str | None = None
     model: str = "gemini-2.5-flash"

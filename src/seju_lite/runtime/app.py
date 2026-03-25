@@ -18,7 +18,6 @@ from seju_lite.config.loader import load_config
 from seju_lite.config.schema import RootConfig
 from seju_lite.providers.base import LLMProvider
 from seju_lite.providers.gemini_provider import GeminiProvider
-from seju_lite.providers.litellm_deepseek_provider import LiteLLMDeepSeekProvider
 from seju_lite.providers.openai_compatible import OpenAICompatibleProvider
 from seju_lite.providers.registry import find_by_kind
 from seju_lite.tools.mcp_client import MCPClientHub
@@ -53,7 +52,9 @@ def _build_gemini(config: RootConfig) -> LLMProvider:
 
 
 def _build_openai_compatible(config: RootConfig) -> LLMProvider:
-    base_url = os.getenv("OPENAI_COMPATIBLE_BASE_URL", "").strip()
+    base_url = (config.provider.apiBase or "").strip()
+    if not base_url:
+        base_url = os.getenv("OPENAI_COMPATIBLE_BASE_URL", "").strip()
     if not base_url:
         raise ValueError("OPENAI_COMPATIBLE_BASE_URL is not set")
 
@@ -66,22 +67,26 @@ def _build_openai_compatible(config: RootConfig) -> LLMProvider:
     )
 
 
-def _build_litellm_deepseek(config: RootConfig) -> LLMProvider:
-    return LiteLLMDeepSeekProvider(
+def _build_deepseek(config: RootConfig) -> LLMProvider:
+    base_url = (config.provider.apiBase or "").strip()
+    if not base_url:
+        base_url = os.getenv("DEEPSEEK_API_BASE_URL", "").strip()
+    if not base_url:
+        base_url = "https://api.deepseek.com"
+
+    return OpenAICompatibleProvider(
+        base_url=base_url,
         api_key=config.provider.apiKey,
         model=config.provider.model,
         temperature=config.provider.temperature,
-        max_output_tokens=config.provider.maxOutputTokens,
-        api_base=config.provider.apiBase,
-        provider_kind=config.provider.kind,
+        max_tokens=config.provider.maxOutputTokens,
     )
 
 
 PROVIDER_BUILDERS: dict[str, Callable[[RootConfig], LLMProvider]] = {
     "gemini": _build_gemini,
     "openai_compatible": _build_openai_compatible,
-    "deepseek": _build_litellm_deepseek,
-    "litellm_deepseek": _build_litellm_deepseek,
+    "deepseek": _build_deepseek,
 }
 
 

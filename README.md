@@ -10,6 +10,8 @@
 
 `seju-lite` is the runtime package. `seju.neo` is the product-facing identity.
 
+
+
 ## ✨ Why seju.neo
 
 - Lightweight runtime with clear module boundaries.
@@ -146,6 +148,28 @@ Important sections:
 - `tools`
   - built-in tools (`time`, `readFile`, `web`, `shell`)
   - `mcp.servers` (`stdio`, `sse`, `streamableHttp`)
+
+### Routing and Agent Mode
+
+`seju-lite` uses a two-stage routing pipeline:
+
+1. `WorkflowOrchestrator` selects the target agent.
+2. `AgentOrchestrator` dispatches the request to the selected agent.
+
+`agent.mode` behavior:
+
+- `single`: always runs `defaultAgent`; keyword routing and LLM planner are bypassed.
+- `multi`: uses keyword routing first (`agent.routing`), then optional LLM planner (`enableLlmPlanner`) may override the result.
+
+Built-in agent profiles:
+
+- `local`: local/non-network tools.
+- `web`: network/external tools (for example `mcp_playwright_*` and web fetch style tools).
+- `main`: general fallback profile.
+
+Practical note:
+
+- If `agent.mode` is `single` and `defaultAgent` is `local`, a prompt like "google search ..." still stays on `local`, so Playwright/network tools will not be called.
 
 ## 🔌 API Contract
 

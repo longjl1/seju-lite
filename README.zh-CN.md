@@ -60,7 +60,7 @@ seju-lite/                        # root
     tools/
     utils/
   tests/
-  workspace/                       # 记忆+skills
+  workspace/                      # 记忆+skills
     memory/
     sessions/
     skills/
@@ -152,6 +152,28 @@ SEJU_API_KEY=
   - 内置工具（`time`、`readFile`、`web`、`shell`）
   - `mcp.servers`（`stdio`、`sse`、`streamableHttp`）
 
+### 路由层与 Agent Mode
+
+`seju-lite` 采用两层路由链路：
+
+1. `WorkflowOrchestrator` 先选择目标 agent。
+2. `AgentOrchestrator` 再把请求派发到该 agent 执行。
+
+`agent.mode` 的行为：
+
+- `single`：始终使用 `defaultAgent`，不会走关键词路由，也不会启用 LLM planner 的改写。
+- `multi`：先按 `agent.routing` 关键词路由，再由可选的 LLM planner（`enableLlmPlanner`）进行二次决策覆盖。
+
+内置 agent 画像：
+
+- `local`：本地/非网络工具为主。
+- `web`：网络/外部工具为主（例如 `mcp_playwright_*`、网页抓取类工具）。
+- `main`：通用兜底 agent。
+
+实践说明：
+
+- 如果 `agent.mode = "single"` 且 `defaultAgent = "local"`，即使提示词里有“google 搜索”，仍会停留在 `local`，不会触发 Playwright 等网络工具。
+
 ## 🔌 API
 
 ### ❤️ `GET /health`
@@ -231,4 +253,3 @@ uv run mypy src
 
 > 当前新增LLM planner (决策层)
 项目持续迭代中。路由、记忆、工具层均保持模块化，便于逐步演进。
-

@@ -15,7 +15,6 @@ dependencies = [
     "loguru>=0.7,<1.0",
     "python-dotenv>=1.0,<2.0",
     "google-genai>=1.68.0",
-    "litellm>=1.82.5",
     "discord.py>=2.4,<3.0",
     "mcp>=1.0,<2.0",
     "langchain>=1.2.13",

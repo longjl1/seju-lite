@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import inspect
 import logging
 
 from seju_lite.bus.events import InboundMessage, OutboundMessage
@@ -25,25 +26,7 @@ def _enter_cli_quiet_mode() -> dict[str, int | bool]:
         prev_levels[name] = lg.level
         lg.setLevel(logging.WARNING)
 
-    state: dict[str, int | bool] = {"_enabled": True, **prev_levels}
-
-    # Best-effort: silence LiteLLM verbose prints if available.
-    try:
-        import litellm  # type: ignore
-
-        state["litellm_set_verbose"] = bool(getattr(litellm, "set_verbose", False))
-        state["litellm_suppress_debug_info"] = bool(
-            getattr(litellm, "suppress_debug_info", False)
-        )
-        if hasattr(litellm, "set_verbose"):
-            litellm.set_verbose = False
-        if hasattr(litellm, "suppress_debug_info"):
-            litellm.suppress_debug_info = True
-    except Exception:
-        state["litellm_set_verbose"] = False
-        state["litellm_suppress_debug_info"] = False
-
-    return state
+    return {"_enabled": True, **prev_levels}
 
 
 def _exit_cli_quiet_mode(state: dict[str, int | bool]) -> None:
@@ -51,19 +34,9 @@ def _exit_cli_quiet_mode(state: dict[str, int | bool]) -> None:
         return
 
     for name, level in state.items():
-        if name.startswith("_") or name.startswith("litellm_"):
+        if name.startswith("_"):
             continue
         logging.getLogger(name).setLevel(int(level))
-
-    try:
-        import litellm  # type: ignore
-
-        if "litellm_set_verbose" in state and hasattr(litellm, "set_verbose"):
-            litellm.set_verbose = bool(state["litellm_set_verbose"])
-        if "litellm_suppress_debug_info" in state and hasattr(litellm, "suppress_debug_info"):
-            litellm.suppress_debug_info = bool(state["litellm_suppress_debug_info"])
-    except Exception:
-        pass
 
 
 def _format_runtime_error(exc: Exception) -> str:
@@ -222,3 +195,10 @@ async def close_app(app: SejuApp) -> None:
     for channel in app.channels.values():
         with contextlib.suppress(Exception):
             await channel.stop()
+
+    provider_close = getattr(app.provider, "close", None)
+    if callable(provider_close):
+        with contextlib.suppress(Exception):
+            maybe_result = provider_close()
+            if inspect.isawaitable(maybe_result):
+                await maybe_result

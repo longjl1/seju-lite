@@ -9,8 +9,6 @@ class ProviderSpec:
     keywords: tuple[str, ...] = ()
     env_key: str = ""
     display_name: str = ""
-    litellm_prefix: str = ""
-    skip_prefixes: tuple[str, ...] = ()
 
     @property
     def label(self) -> str:
@@ -34,16 +32,6 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         keywords=("deepseek",),
         env_key="DEEPSEEK_API_KEY",
         display_name="DeepSeek",
-        litellm_prefix="deepseek",
-        skip_prefixes=("deepseek/",),
-    ),
-    ProviderSpec(
-        kind="litellm_deepseek",
-        keywords=("deepseek",),
-        env_key="DEEPSEEK_API_KEY",
-        display_name="LiteLLM DeepSeek",
-        litellm_prefix="deepseek",
-        skip_prefixes=("deepseek/",),
     ),
 )
 
@@ -61,11 +49,3 @@ def find_by_model(model: str) -> ProviderSpec | None:
         if any(keyword in model_lower for keyword in spec.keywords):
             return spec
     return None
-
-
-def apply_litellm_prefix(model: str, spec: ProviderSpec) -> str:
-    if not spec.litellm_prefix:
-        return model
-    if any(model.startswith(prefix) for prefix in spec.skip_prefixes):
-        return model
-    return f"{spec.litellm_prefix}/{model}"

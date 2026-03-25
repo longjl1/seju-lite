@@ -7,9 +7,9 @@
   "agent": {
     "name": "SejuLite",
     "systemPrompt": "",
-    "mode": "multi",
-    "defaultAgent": "local",
-    "enableLlmPlanner": true,
+    "mode": "single",
+    "defaultAgent": "main",
+    "enableLlmPlanner": false,
     "plannerConfidenceThreshold": 0.65,
     "routing": {
       "local": ["local", "本地", "文件", "memory", "notion", "写入", "读取"],
