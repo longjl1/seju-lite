@@ -8,39 +8,40 @@
 
 > 这是一个轻量级多智能体框架.
 
-`seju-lite` 是运行时包名，`seju.neo` 是产品展示名称。
+`seju-lite` 是运行时包名，`seju.neo` 是产品展示名称
 
 
 ## ✨ seju.neo？
 
 - 运行时轻量，模块边界清晰。
-- 支持多智能体路由（规则 + 可选 LLM Planner）。
-- 工具优先（内置工具 + MCP 服务）。
-- 多通道接入（CLI、API、Discord、Telegram、WhatsApp）。
-- 持久记忆（短期会话 + 长期归档整合）。
+- 支持多智能体路由（规则 + 可选 LLM Planner）
+- 工具优先（内置工具 + MCP 服务）
+- 多通道接入（CLI、API、Discord、Telegram、WhatsApp）
+- 持久记忆（短期会话 + 长期归档整合）
 
 灵感来源：`openclaw & nanobot` 
 
 ## 🍤 Update 
+
 - 2026.3.24 新增路由决策层，选择agent（规则路由 + 可选 LLM planner）派发task
 
 ## 🏗️ 架构总览
 
 请求主链路：
 
-1. 入口接收消息（`channel` 或 `API`）。
-2. `WorkflowOrchestrator` 进行路由决策。
-3. `AgentOrchestrator` 分发执行。
-4. `AgentLoop` 组装上下文、执行工具循环、写入会话与记忆。
-5. 出口返回最终回复。
+1. 入口接收消息（`channel` 或 `API`）
+2. `WorkflowOrchestrator` 进行路由决策
+3. `AgentOrchestrator` 分发执行
+4. `AgentLoop` 组装上下文、执行工具循环、写入会话与记忆
+5. 出口返回最终回复
 
 核心目录：
 
-- `src/seju_lite/agent`：上下文、循环、编排、记忆、子智能体。
-- `src/seju_lite/tools`：内置工具、MCP 客户端/服务端、RAG MCP 服务。
-- `src/seju_lite/channels`：Discord/Telegram/WhatsApp 适配层。
-- `src/seju_lite/api`：FastAPI 服务（`/health`、`/chat`）。
-- `src/seju_lite/runtime`：应用启动、worker、优雅关闭。
+- `src/seju_lite/agent`：上下文、循环、编排、记忆、子智能体
+- `src/seju_lite/tools`：内置工具、MCP 客户端/服务端、RAG MCP 服务
+- `src/seju_lite/channels`：Discord/Telegram/WhatsApp 适配层
+- `src/seju_lite/api`：FastAPI 服务（`/health`、`/chat`）
+- `src/seju_lite/runtime`：应用启动，进程
 
 ## 📦 项目结构
 
@@ -108,15 +109,15 @@ SEJU_API_KEY=
 
 说明：
 
-- `config.json` 中的 `provider.apiKey` 与各通道 token 支持 `${ENV_NAME}` 插值。
-- 设置 `SEJU_API_KEY` 后，`/chat` 需要 Bearer Token，`/health` 保持公开。
+- `config.json` 中的 `provider.apiKey` 与各通道 token 支持 `${ENV_NAME}` 插值
+- 设置 `SEJU_API_KEY` 后，`/chat` 需要 Bearer Token，`/health` 保持公开
 
 ## 🧰 CLI 命令
 
-- `start`：启动 worker 与已启用通道。
-- `chat`：本地终端聊天。
-- `api`：启动 HTTP API。
-- `config-validate`：校验配置文件。
+- `start`：启动 worker 与已启用通道
+- `chat`：本地终端聊天
+- `api`：启动 HTTP API
+- `config-validate`：校验配置文件
 - `tool-list`：列出已注册工具。
 - `test-provider`：直连模型调试。
 - `mcp-server`：将内置工具暴露为 MCP 服务。
@@ -146,7 +147,7 @@ SEJU_API_KEY=
   - `kind`：`gemini` / `openai_compatible` / `deepseek`
   - 模型、温度、输出 token 等参数
 - `channels`
-  - 目前支持 Telegram / Discord / WhatsApp 
+  - 目前支持 Telegram / Discord / WhatsApp(test) 
   - soon：webui
 - `tools`
   - 内置工具（`time`、`readFile`、`web`、`shell`）
@@ -156,23 +157,24 @@ SEJU_API_KEY=
 
 `seju-lite` 采用两层路由链路：
 
-1. `WorkflowOrchestrator` 先选择目标 agent。
-2. `AgentOrchestrator` 再把请求派发到该 agent 执行。
+1. `WorkflowOrchestrator` 先选择目标 agent
+2. `AgentOrchestrator` 再把请求派发到该 agent 执行
 
 `agent.mode` 的行为：
 
-- `single`：始终使用 `defaultAgent`，不会走关键词路由，也不会启用 LLM planner 的改写。
-- `multi`：先按 `agent.routing` 关键词路由，再由可选的 LLM planner（`enableLlmPlanner`）进行二次决策覆盖。
+- `single`：始终使用 `defaultAgent`，不会走关键词路由，也不会启用 LLM planner 的改写
+- `multi`：先按 `agent.routing` 关键词路由，再由可选的 LLM planner（`enableLlmPlanner`）进行二次决策覆盖
 
 内置 agent 画像：
 
-- `local`：本地/非网络工具为主。
-- `web`：网络/外部工具为主（例如 `mcp_playwright_*`、网页抓取类工具）。
-- `main`：通用兜底 agent。
+- `local`：local agent 仅依赖本地/非网络工具
+- `web`：web agent 会使用网络/外部工具（例如 `mcp_playwright_*`、网页抓取类工具）
+- `main`：通用agent
 
-实践说明：
+使用案例：
 
-- 如果 `agent.mode = "single"` 且 `defaultAgent = "local"`，即使提示词里有“google 搜索”，仍会停留在 `local`，不会触发 Playwright 等网络工具。
+- 如果仅使用本地功能和处理轻量任务，建议在config里配置 `agent.mode = "single"` `defaultAgent = "local"`.
+- 如果 `agent.mode = "single"` 且 `defaultAgent = "local"`，即使提示词里有“google 搜索”，仍会停留在 `local`，不会触发 Playwright 等网络工具.
 
 ## 🔌 API
 
@@ -217,12 +219,12 @@ SEJU_API_KEY=
 工作方式：
 
 - 上下文阶段加载最近会话 -> session.JSON
-- Consolidator 周期抽取稳定事实。
-- Context Builder 将记忆与技能注入提示词。
+- Consolidator 周期抽取稳定事实
+- Context Builder 将记忆与技能注入提示词
 
 ## 🔗 MCP 集成
 
-在 `config.json` 的 `tools.mcp.servers` 中配置 MCP 服务。
+在 `config.json` 的 `tools.mcp.servers` 中配置 MCP 服务
 
 仓库内已有示例：
 
@@ -250,6 +252,7 @@ uv run mypy src
 - `seju_lite.agent`
 
 ## 📌 状态
-
+> [!IMPORTANT]
+> **Beta Version:** Graphmem is a graph-based memory embedding in the seju-lite system.
 > 当前新增LLM planner (决策层)
-项目持续迭代中。路由、记忆、工具层均保持模块化，便于逐步演进。
+项目持续迭代中。路由、记忆、工具层均保持模块化，便于逐步演进
