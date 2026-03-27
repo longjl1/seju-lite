@@ -2,10 +2,12 @@
 
 中文 | [English](README.md) | [对比设计实验](README.contrast-test.md)
 
-<p align="center">
+<!-- <p align="center">
   <img src="assets/banner.svg" alt="seju.neo banner" length="1600" width="400"/>
+</p> -->
+<p align="center">
+🤖    
 </p>
-
 > 这是一个轻量级多智能体框架.
 
 `seju-lite` 是运行时包名，`seju.neo` 是产品展示名称
