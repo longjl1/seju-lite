@@ -18,4 +18,7 @@ workspace/memory/
 workspace/sessions/
 workspace/sessions.json
 workspace/rag
+web/.next/
+web/node_modules/
+web/out/
 
