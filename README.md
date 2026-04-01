@@ -35,7 +35,7 @@ Request lifecycle:
 Core modules:
 
 - `src/seju_lite/agent`: context, loop, orchestration, memory, subagent.
-- `src/seju_lite/tools`: built-in tools, MCP client/server, RAG MCP server.
+- `src/seju_lite/tools`: built-in tools, MCP client/server.
 - `src/seju_lite/channels`: Discord/Telegram/WhatsApp adapters.
 - `src/seju_lite/api`: FastAPI service (`/health`, `/chat`).
 - `src/seju_lite/runtime`: app bootstrap, workers, graceful shutdown.
@@ -118,7 +118,6 @@ Notes:
 - `tool-list`: list registered tools.
 - `test-provider`: direct LLM provider check.
 - `mcp-server`: expose built-in tools as an MCP server.
-- `rag-mcp-server`: start SQLite FTS based RAG MCP server.
 
 Built-in slash commands in chat sessions:
 
@@ -224,13 +223,19 @@ Define MCP servers in `tools.mcp.servers` under `config.json`.
 This repository includes examples for:
 
 - local utility MCP server
-- local RAG MCP server
+- external simpleRAG MCP server
 - Notion MCP server
 - Playwright MCP server
 
 Remote MCP tools are wrapped as local function tools:
 
 - naming format: `mcp_<server_name>_<tool_name>`
+
+Default config points the `simple_rag` MCP entry at the sibling project:
+
+```bash
+uv run --project ../simpleRAG simple-rag --data-path ../simpleRAG/data --index-path ../simpleRAG/index_store mcp-server --transport stdio --name simple-rag
+```
 
 ## 🧪 Development
 

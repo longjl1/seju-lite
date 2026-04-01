@@ -1,9 +1,9 @@
 "use client";
 
-import { ChangeEvent, FormEvent, RefObject, useEffect, useState } from "react";
+import { ChangeEvent, DragEvent, FormEvent, RefObject, useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 
-import { Session } from "../types";
+import { Session, UploadedDocument } from "../types";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,19 +13,32 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Moon, Paperclip, Sun } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  Loader2,
+  Moon,
+  Paperclip,
+  Sun,
+  X
+} from "lucide-react";
 
 type ChatPanelProps = {
   activeSession: Session;
   hasStarted: boolean;
   isSending: boolean;
   draft: string;
-  pendingFiles: string[];
+  pendingFiles: UploadedDocument[];
   models: string[];
   fileInputRef: RefObject<HTMLInputElement | null>;
   messageViewportRef: RefObject<HTMLDivElement | null>;
   onDraftChange: (value: string) => void;
-  onFilePick: (event: ChangeEvent<HTMLInputElement>) => void;
+  onFilePick: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
+  onDropFiles: (files: File[]) => Promise<void>;
+  onRemoveUpload: (uploadId: string) => Promise<void>;
   onSendMessage: (event: FormEvent) => Promise<void>;
   onModelChange: (value: string) => void;
 };
@@ -41,22 +54,83 @@ export function ChatPanel({
   messageViewportRef,
   onDraftChange,
   onFilePick,
+  onDropFiles,
+  onRemoveUpload,
   onSendMessage,
   onModelChange
 }: ChatPanelProps) {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const renderUploadIcon = (file: UploadedDocument) => {
+    if (file.status === "uploading") {
+      return <Loader2 className="size-3.5 animate-spin" />;
+    }
+    if (file.status === "ready") {
+      return <CheckCircle2 className="size-3.5" />;
+    }
+    return <FileText className="size-3.5" />;
+  };
+
+  const hasFiles = (event: DragEvent<HTMLFormElement>) =>
+    Array.from(event.dataTransfer?.types ?? []).includes("Files");
+
+  const handleDragEnter = (event: DragEvent<HTMLFormElement>) => {
+    if (!hasFiles(event)) {
+      return;
+    }
+    event.preventDefault();
+    setIsDraggingFiles(true);
+  };
+
+  const handleDragOver = (event: DragEvent<HTMLFormElement>) => {
+    if (!hasFiles(event)) {
+      return;
+    }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    setIsDraggingFiles(true);
+  };
+
+  const handleDragLeave = (event: DragEvent<HTMLFormElement>) => {
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      return;
+    }
+    setIsDraggingFiles(false);
+  };
+
+  const handleDrop = async (event: DragEvent<HTMLFormElement>) => {
+    if (!hasFiles(event)) {
+      return;
+    }
+    event.preventDefault();
+    setIsDraggingFiles(false);
+    const files = Array.from(event.dataTransfer.files ?? []);
+    if (files.length === 0) {
+      return;
+    }
+    await onDropFiles(files);
+  };
 
   const isDark = mounted ? resolvedTheme !== "light" : true;
   const composer = (
     <div className="mx-auto w-full max-w-4xl">
       <form
         onSubmit={onSendMessage}
-        className="glass-surface rounded-[2rem] border mono-border p-3 shadow-panel"
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`glass-surface rounded-[2rem] border p-3 shadow-panel transition-colors ${
+          isDraggingFiles
+            ? "border-[var(--fg)] bg-[color-mix(in_srgb,var(--onhold)_65%,transparent)]"
+            : "mono-border"
+        }`}
       >
         <div className="flex flex-wrap items-center gap-2 border-b mono-border px-2 pb-3">
           <DropdownMenu>
@@ -133,17 +207,36 @@ export function ChatPanel({
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-          <div className="ml-auto flex flex-wrap justify-end gap-2">
+        </div>
+
+        {pendingFiles.length > 0 ? (
+          <div className="flex flex-wrap gap-2 px-2 pt-3">
             {pendingFiles.map((file) => (
-              <span
-                key={file}
-                className="rounded-full border mono-border px-3 py-1 text-[0.72rem] text-[var(--app-muted)]"
+              <div
+                key={file.id}
+                className="inline-flex items-center gap-2 rounded-full border mono-border px-3 py-1.5 text-[0.72rem] text-[var(--app-muted)]"
               >
-                {file}
-              </span>
+                {renderUploadIcon(file)}
+                <span className="max-w-52 truncate">{file.name}</span>
+                <button
+                  type="button"
+                  onClick={() => void onRemoveUpload(file.id)}
+                  className="rounded-full p-0.5 transition hover:bg-[var(--onhold)] hover:text-[var(--text)]"
+                  aria-label={`Remove ${file.name}`}
+                  title={`Remove ${file.name}`}
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
             ))}
           </div>
-        </div>
+        ) : null}
+
+        {isDraggingFiles ? (
+          <div className="px-2 pt-3 text-sm text-[var(--text)]">
+            Drop files here to upload them into this chat.
+          </div>
+        ) : null}
 
         <div className="flex items-end gap-3 px-2 pt-3">
           <textarea
@@ -167,7 +260,7 @@ export function ChatPanel({
 
   return (
     <section className="relative flex h-screen flex-1 flex-col overflow-hidden">
-      <header className="z-30 flex items-center justify-between border-b mono-border bg-[color-mix(in_srgb,var(--bg)_88%,transparent)] px-5 py-4 backdrop-blur-md lg:px-8">
+      <header className="z-30 flex items-center justify-between  bg-transparent px-5 py-4 backdrop-blur-md lg:px-8">
         <div>
           <p className="text-[0.72rem] uppercase tracking-[0.3em] text-[var(--app-muted)]">seju-lite runtime</p>
           <h1 className="mt-1 text-lg">Minimal chat workspace</h1>
@@ -227,15 +320,52 @@ export function ChatPanel({
                         : "mono-border"
                     }`}
                   >
-                    {message.content}
+                    {message.role === "assistant" &&
+                    message.thinkingSteps &&
+                    message.thinkingSteps.length > 0 ? (
+                      <details className="group mb-4 rounded-[1.35rem] border mono-border bg-[var(--onhold)]/35 px-4 py-3 text-left">
+                        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[0.72rem] uppercase tracking-[0.22em] text-[var(--app-muted)] [&::-webkit-details-marker]:hidden">
+                          <span>Thinking trace</span>
+                          <span className="inline-flex items-center gap-1">
+                            <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" />
+                            {message.thinkingSteps.length}
+                          </span>
+                        </summary>
+                        <div className="mt-3 space-y-2">
+                          {message.thinkingSteps.map((step) => (
+                            <div
+                              key={step.id}
+                              className="rounded-2xl border mono-border px-3 py-2 text-left"
+                            >
+                              <div className="flex items-center gap-2 text-[0.72rem] uppercase tracking-[0.18em] text-[var(--app-muted)]">
+                                {step.state === "pending" ? (
+                                  <Loader2 className="size-3.5 animate-spin" />
+                                ) : step.state === "done" ? (
+                                  <CheckCircle2 className="size-3.5" />
+                                ) : step.state === "error" ? (
+                                  <AlertCircle className="size-3.5" />
+                                ) : (
+                                  <FileText className="size-3.5" />
+                                )}
+                                <span>{step.kind === "tool" ? "Tool" : "Status"}</span>
+                              </div>
+                              <p className="mt-1 text-sm text-[var(--text)]">{step.title}</p>
+                              {step.detail ? (
+                                <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-6 text-[var(--app-muted)]">
+                                  {step.detail}
+                                </p>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    ) : null}
+                    <div className="whitespace-pre-wrap break-words">
+                      {message.content || (message.isStreaming ? "seju is streaming..." : "")}
+                    </div>
                   </div>
                 </article>
               ))}
-              {isSending ? (
-                <div className="max-w-3xl rounded-[2rem] border mono-border px-5 py-4 text-sm text-[var(--app-muted)]">
-                  seju is thinking...
-                </div>
-              ) : null}
             </div>
           )}
         </div>

@@ -40,7 +40,7 @@
 核心目录：
 
 - `src/seju_lite/agent`：上下文、循环、编排、记忆、子智能体
-- `src/seju_lite/tools`：内置工具、MCP 客户端/服务端、RAG MCP 服务
+- `src/seju_lite/tools`：内置工具、MCP 客户端/服务端
 - `src/seju_lite/channels`：Discord/Telegram/WhatsApp 适配层
 - `src/seju_lite/api`：FastAPI 服务（`/health`、`/chat`）
 - `src/seju_lite/runtime`：应用启动，进程
@@ -123,7 +123,6 @@ SEJU_API_KEY=
 - `tool-list`：列出已注册工具。
 - `test-provider`：直连模型调试。
 - `mcp-server`：将内置工具暴露为 MCP 服务。
-- `rag-mcp-server`：启动基于 SQLite FTS 的 RAG MCP 服务。
 
 聊天内置命令：
 
@@ -231,7 +230,7 @@ SEJU_API_KEY=
 仓库内已有示例：
 
 - 本地工具 MCP 服务
-- 本地 RAG MCP 服务
+- external simpleRAG MCP 服务
 - Notion MCP 服务
 - Playwright MCP 服务
 

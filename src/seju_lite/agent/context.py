@@ -99,6 +99,7 @@ Your workspace is at: {workspace_path}
 - Ask for clarification when the request is ambiguous.
 - For browser control requests ("open website", "click", "type", "navigate"), prefer Playwright MCP tools when available (names start with `mcp_playwright_`).
 - If browser control is requested without a URL or target, ask one concise follow-up question before tool calls.
+- When runtime context includes uploaded file paths plus `Upload Data Path`, prefer using `rag_ingest`, `rag_retrieve`, and `rag_answer` for document parsing and Q&A against those uploaded files.
 """
 
     def _load_bootstrap_files(self) -> str:
@@ -111,12 +112,33 @@ Your workspace is at: {workspace_path}
         return "\n\n".join(parts) if parts else ""
 
     @staticmethod
-    def build_runtime_context(channel: str | None, chat_id: str | None) -> str:
+    def build_runtime_context(
+        channel: str | None,
+        chat_id: str | None,
+        metadata: dict[str, Any] | None = None,
+    ) -> str:
         lines = [f"Current Time: {get_current_datetime()}"]
         if channel:
             lines.append(f"Channel: {channel}")
         if chat_id:
             lines.append(f"Chat ID: {chat_id}")
+        if metadata:
+            upload_data_path = metadata.get("upload_data_path")
+            rag_index_path = metadata.get("rag_index_path")
+            uploads = metadata.get("uploads") or []
+            if upload_data_path:
+                lines.append(f"Upload Data Path: {upload_data_path}")
+            if rag_index_path:
+                lines.append(f"RAG Index Path: {rag_index_path}")
+            if uploads:
+                lines.append(f"Uploaded Files Count: {len(uploads)}")
+                for item in uploads:
+                    if not isinstance(item, dict):
+                        continue
+                    name = str(item.get("name") or "").strip()
+                    saved_path = str(item.get("savedPath") or "").strip()
+                    if name and saved_path:
+                        lines.append(f"Uploaded File: {name} -> {saved_path}")
         return ContextBuilder._RUNTIME_CONTEXT_TAG + "\n" + "\n".join(lines)
 
     def build_messages(
@@ -125,11 +147,12 @@ Your workspace is at: {workspace_path}
         current_message: str,
         channel: str | None = None,
         chat_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
         skill_names: list[str] | None = None,
         media: list[str] | None = None,
         current_role: str = "user",
     ) -> list[dict[str, Any]]:
-        runtime = self.build_runtime_context(channel, chat_id)
+        runtime = self.build_runtime_context(channel, chat_id, metadata)
         user_content = self._build_user_content(current_message, media)
 
         # Keep a single current turn to avoid consecutive same-role messages.

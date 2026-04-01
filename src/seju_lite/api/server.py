@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 import os
 import time
 import uuid
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from seju_lite.bus.events import InboundMessage
@@ -36,6 +38,16 @@ class HealthResponse(BaseModel):
     status: str
     app: str
     model: str
+
+
+def _format_sse_event(event_type: str, payload: dict[str, Any]) -> bytes:
+    return f"event: {event_type}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
+
+
+def _chunk_text(text: str, size: int = 12) -> list[str]:
+    if not text:
+        return []
+    return [text[idx : idx + size] for idx in range(0, len(text), size)]
 
 
 def _parse_csv_env(name: str, default: str) -> list[str]:
@@ -140,5 +152,94 @@ def build_api(config_path: str | Path = "config.json") -> FastAPI:
             raise HTTPException(status_code=500, detail="Failed to process message") from exc
 
         return ChatResponse(reply=reply, conversation_id=payload.conversation_id)
+
+    @app.post("/chat/stream")
+    async def chat_stream(payload: ChatRequest, request: Request) -> StreamingResponse:
+        app_ctx = state["app_ctx"]
+        if app_ctx is None:
+            raise HTTPException(status_code=503, detail="App context is not ready")
+
+        inbound = InboundMessage(
+            channel="web",
+            sender_id=payload.user_id,
+            chat_id=payload.conversation_id,
+            content=payload.message,
+            metadata=payload.metadata,
+        )
+        request_id = getattr(request.state, "request_id", "-")
+
+        async def event_stream():
+            queue: asyncio.Queue[dict[str, Any] | None] = asyncio.Queue()
+
+            async def emit(event: dict[str, Any]) -> None:
+                await queue.put(event)
+
+            async def run_agent() -> None:
+                try:
+                    await emit(
+                        {
+                            "type": "status",
+                            "id": "agent-start",
+                            "title": "Starting agent run",
+                            "detail": "Preparing context and tools for this turn.",
+                            "state": "info",
+                        }
+                    )
+                    reply = await app_ctx.agent.process_message(
+                        inbound,
+                        event_callback=emit,
+                    )
+                    await emit(
+                        {
+                            "type": "answer_start",
+                            "conversation_id": payload.conversation_id,
+                        }
+                    )
+                    for chunk in _chunk_text(reply):
+                        await emit({"type": "delta", "content": chunk})
+                        await asyncio.sleep(0.02)
+                    await emit(
+                        {
+                            "type": "done",
+                            "reply": reply,
+                            "conversation_id": payload.conversation_id,
+                        }
+                    )
+                except Exception:
+                    logger.exception("chat_stream_failed request_id=%s", request_id)
+                    await emit(
+                        {
+                            "type": "error",
+                            "detail": "Failed to process message",
+                        }
+                    )
+                finally:
+                    await queue.put(None)
+
+            task = asyncio.create_task(run_agent())
+            try:
+                while True:
+                    if await request.is_disconnected():
+                        task.cancel()
+                        break
+                    event = await queue.get()
+                    if event is None:
+                        break
+                    yield _format_sse_event(str(event.get("type", "message")), event)
+            finally:
+                if not task.done():
+                    task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await task
+
+        return StreamingResponse(
+            event_stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     return app

@@ -8,6 +8,9 @@ class ToolRegistry:
     def get(self, name: str):
         return self._tools.get(name)
 
+    def iter_tools(self):
+        return self._tools.values()
+
     ''' function calling？ 
     
     eg.

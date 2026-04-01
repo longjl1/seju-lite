@@ -17,7 +17,12 @@ workspace/_test/
 workspace/memory/
 workspace/sessions/
 workspace/sessions.json
-workspace/rag
+workspace/rag/
+workspace/rag-index/
+workspace/uploads/
+workspace/runtime/
+workspace/**/*.sqlite3
+workspace/**/*.db
 web/.next/
 web/node_modules/
 web/out/

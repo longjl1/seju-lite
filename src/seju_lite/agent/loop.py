@@ -1,10 +1,12 @@
 ﻿import asyncio
+import inspect
 import json
 import logging
 import os
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Awaitable, Callable
 
 from seju_lite.agent.command_router import CommandRouter
 from seju_lite.agent.context import ContextBuilder
@@ -14,6 +16,12 @@ from seju_lite.session.manager import SessionManager
 from seju_lite.tools.message_helper import MessageHelperTool
 from seju_lite.tools.read_file_tool import ReadFileTool
 from seju_lite.tools.registry import ToolRegistry
+from seju_lite.tools.simple_rag_tool import (
+    EmbeddedRagAnswerTool,
+    EmbeddedRagIngestTool,
+    EmbeddedRagRetrieveTool,
+    EmbeddedSimpleRAGRuntime,
+)
 from seju_lite.tools.spawn_tool import SpawnTool
 from seju_lite.tools.time_tool import TimeTool
 from seju_lite.tools.web_tool import WebFetchTool
@@ -55,6 +63,7 @@ class AgentLoop:
         )
 
         self.tools = ToolRegistry()
+        self.simple_rag_runtime = EmbeddedSimpleRAGRuntime(workspace=self.workspace)
         subagent_iterations = getattr(config.agent, "subagentMaxIterations", 10)
         self.subagents = SubagentManager(
             provider=provider,
@@ -84,6 +93,9 @@ class AgentLoop:
             _register_if_missing(ReadFileTool(Path(self.config.tools.readFile.rootDir)))
         if self.config.tools.web.enabled:
             _register_if_missing(WebFetchTool(max_chars=self.config.tools.web.maxChars))
+        _register_if_missing(EmbeddedRagIngestTool(self.simple_rag_runtime))
+        _register_if_missing(EmbeddedRagRetrieveTool(self.simple_rag_runtime))
+        _register_if_missing(EmbeddedRagAnswerTool(self.simple_rag_runtime))
 
         # Subagent is tool-driven (spawn tool), not implicit routing.
         if getattr(self.config.agent, "enableSubagent", True):
@@ -101,13 +113,35 @@ class AgentLoop:
             },
         }
 
-    def _set_tool_context(self, channel: str, chat_id: str, session_key: str) -> None:
+    def _set_tool_context(
+        self,
+        channel: str,
+        chat_id: str,
+        session_key: str,
+        metadata: dict | None = None,
+    ) -> None:
         spawn = self.tools.get("spawn")
         if spawn and hasattr(spawn, "set_context"):
             spawn.set_context(channel=channel, chat_id=chat_id, session_key=session_key)
         helper = self.tools.get("message_helper")
         if helper and hasattr(helper, "set_context"):
             helper.set_context(session_key=session_key)
+        for tool in self.tools.iter_tools():
+            if hasattr(tool, "set_context"):
+                if tool is spawn or tool is helper:
+                    continue
+                params = inspect.signature(tool.set_context).parameters
+                kwargs: dict[str, object] = {}
+                if "channel" in params:
+                    kwargs["channel"] = channel
+                if "chat_id" in params:
+                    kwargs["chat_id"] = chat_id
+                if "session_key" in params:
+                    kwargs["session_key"] = session_key
+                if "metadata" in params:
+                    kwargs["metadata"] = metadata or {}
+                if kwargs:
+                    tool.set_context(**kwargs)
 
     async def _restart_process(self) -> None:
         await asyncio.sleep(1)
@@ -131,13 +165,39 @@ class AgentLoop:
             return defs
         return [d for d in defs if self._extract_tool_name(d) in allowed_tool_names]
 
-    async def _run_agent_loop(self, messages, allowed_tool_names: set[str] | None = None):
+    @staticmethod
+    def _preview_payload(value: object, limit: int = 300) -> str:
+        if isinstance(value, str):
+            preview = value
+        else:
+            preview = json.dumps(value, ensure_ascii=False)
+        preview = preview.replace("\n", " ")
+        if len(preview) > limit:
+            preview = preview[:limit] + "...(truncated)"
+        return preview
+
+    async def _run_agent_loop(
+        self,
+        messages,
+        allowed_tool_names: set[str] | None = None,
+        event_callback: Callable[[dict], Awaitable[None]] | None = None,
+    ):
         max_iterations = self.config.agent.maxIterations
         final_content = None
         tool_defs = self._filter_tool_defs(allowed_tool_names)
 
         for idx in range(max_iterations):
             self.logger.info("Agent loop iteration %s/%s", idx + 1, max_iterations)
+            if event_callback:
+                await event_callback(
+                    {
+                        "type": "status",
+                        "id": f"iteration-{idx + 1}",
+                        "title": f"Iteration {idx + 1}/{max_iterations}",
+                        "detail": "Planning the next action.",
+                        "state": "info",
+                    }
+                )
             response = await self.provider.generate(
                 messages=messages,
                 tools=tool_defs,
@@ -157,10 +217,19 @@ class AgentLoop:
                 )
 
                 for tc in response.tool_calls:
-                    args_preview = json.dumps(tc.arguments, ensure_ascii=False)
-                    if len(args_preview) > 500:
-                        args_preview = args_preview[:500] + "...(truncated)"
+                    args_preview = self._preview_payload(tc.arguments, limit=500)
                     self.logger.info("Calling tool: %s args=%s", tc.name, args_preview)
+                    if event_callback:
+                        await event_callback(
+                            {
+                                "type": "tool_call",
+                                "id": tc.id,
+                                "tool_name": tc.name,
+                                "title": f"Calling {tc.name}",
+                                "detail": args_preview,
+                                "state": "pending",
+                            }
+                        )
                     if allowed_tool_names and tc.name not in allowed_tool_names:
                         result = (
                             f"Tool '{tc.name}' is not available in this agent profile. "
@@ -168,10 +237,21 @@ class AgentLoop:
                         )
                     else:
                         result = await self.tools.execute(tc.name, tc.arguments)
-                    result_preview = result.replace("\n", " ")
-                    if len(result_preview) > 300:
-                        result_preview = result_preview[:300] + "...(truncated)"
+                    result_preview = self._preview_payload(result)
                     self.logger.info("Tool finished: %s result=%s", tc.name, result_preview)
+                    if event_callback:
+                        await event_callback(
+                            {
+                                "type": "tool_result",
+                                "id": tc.id,
+                                "tool_name": tc.name,
+                                "title": f"{tc.name} finished",
+                                "detail": result_preview,
+                                "state": "error"
+                                if result.startswith("Tool '") or result.startswith("Error ")
+                                else "done",
+                            }
+                        )
                     messages = self.context.add_tool_result(
                         messages=messages,
                         tool_call_id=tc.id,
@@ -182,6 +262,16 @@ class AgentLoop:
                 self.logger.info("LLM returned no tool calls in this iteration")
                 if response.content and response.content.strip():
                     final_content = response.content
+                    if event_callback:
+                        await event_callback(
+                            {
+                                "type": "status",
+                                "id": "drafting-final-answer",
+                                "title": "Drafting final answer",
+                                "detail": "Converting the gathered context into a reply.",
+                                "state": "done",
+                            }
+                        )
                     messages = self.context.add_assistant_message(
                         messages=messages,
                         content=final_content,
@@ -226,9 +316,16 @@ class AgentLoop:
             entry.setdefault("timestamp", datetime.now().isoformat())
             session.messages.append(entry)
 
-    async def process_message(self, inbound, tool_allowlist: set[str] | None = None):
+    async def process_message(
+        self,
+        inbound,
+        tool_allowlist: set[str] | None = None,
+        event_callback: Callable[[dict], Awaitable[None]] | None = None,
+    ):
         workflow_internal = bool(inbound.metadata.get("workflow_internal"))
         session = self.sessions.get_or_create(inbound.session_key)
+        if inbound.metadata:
+            session.metadata.update(inbound.metadata)
         if not workflow_internal:
             command_result = await self.command_router.handle(content=inbound.content, session=session)
             if command_result is not None:
@@ -244,6 +341,7 @@ class AgentLoop:
             channel=inbound.channel,
             chat_id=inbound.chat_id,
             session_key=inbound.session_key,
+            metadata=session.metadata,
         )
 
         messages = self.context.build_messages(
@@ -251,11 +349,13 @@ class AgentLoop:
             current_message=inbound.content,
             channel=inbound.channel,
             chat_id=inbound.chat_id,
+            metadata=inbound.metadata,
         )
 
         final_content, all_messages = await self._run_agent_loop(
             messages,
             allowed_tool_names=tool_allowlist,
+            event_callback=event_callback,
         )
 
         if not workflow_internal:

@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 class Session(BaseModel):
     key: str
     messages: list[dict] = Field(default_factory=list)
+    metadata: dict = Field(default_factory=dict)
     updated_at: str = Field(default_factory=lambda: datetime.now().isoformat())
     last_consolidated: int = 0
 
@@ -20,6 +21,7 @@ class Session(BaseModel):
 
     def clear(self) -> None:
         self.messages = []
+        self.metadata = {}
         self.last_consolidated = 0
         self.updated_at = datetime.now().isoformat()
 

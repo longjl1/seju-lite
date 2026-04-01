@@ -4,7 +4,7 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "re
 
 import { ChatPanel } from "./components/chat-panel";
 import { Sidebar } from "./components/sidebar";
-import { Message, Session } from "./types";
+import { Message, Session, ThinkingStep, UploadedDocument } from "./types";
 
 const MODELS = ["deepseek-chat", "gpt-4.1-mini", "gemini-2.0-flash"];
 const STORAGE_KEY = "seju-lite-web-sessions";
@@ -37,6 +37,68 @@ function buildStarterSession(): Session {
   };
 }
 
+function normalizeUploads(uploads: unknown): UploadedDocument[] {
+  if (!Array.isArray(uploads)) {
+    return [];
+  }
+
+  const normalized: UploadedDocument[] = [];
+
+  uploads.forEach((item) => {
+    let nextItem: UploadedDocument | null = null;
+
+    if (typeof item === "string") {
+      nextItem = {
+        id: item,
+        name: item,
+        status: "ready"
+      };
+    } else if (item && typeof item === "object") {
+      const record = item as Partial<UploadedDocument>;
+      const name = typeof record.name === "string" ? record.name : "";
+      if (name) {
+        nextItem = {
+          id:
+            typeof record.id === "string" && record.id
+              ? record.id
+              : Math.random().toString(36).slice(2),
+          name,
+          savedPath: typeof record.savedPath === "string" ? record.savedPath : undefined,
+          relativePath: typeof record.relativePath === "string" ? record.relativePath : undefined,
+          size: typeof record.size === "number" ? record.size : undefined,
+          status:
+            record.status === "uploading" || record.status === "error" || record.status === "ready"
+              ? record.status
+              : "ready",
+          error: typeof record.error === "string" ? record.error : undefined,
+          indexedAt: typeof record.indexedAt === "string" ? record.indexedAt : undefined
+        };
+      }
+    }
+
+    if (nextItem) {
+      normalized.push(nextItem);
+    }
+  });
+
+  return normalized;
+}
+
+function normalizeSessions(raw: Session[]): Session[] {
+  return raw.map((session) => ({
+    ...session,
+    uploads: normalizeUploads(session.uploads),
+    messages: Array.isArray(session.messages)
+      ? session.messages.map((message) => ({
+          ...message,
+          thinkingSteps: Array.isArray(message.thinkingSteps)
+            ? (message.thinkingSteps as ThinkingStep[])
+            : undefined
+        }))
+      : []
+  }));
+}
+
 function formatTime(value: string) {
   return new Intl.DateTimeFormat("en", {
     hour: "2-digit",
@@ -49,7 +111,7 @@ export default function HomePage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>("");
   const [draft, setDraft] = useState("");
-  const [pendingFiles, setPendingFiles] = useState<string[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<UploadedDocument[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -62,9 +124,10 @@ export default function HomePage() {
       try {
         const parsed = JSON.parse(storedSessions) as Session[];
         if (parsed.length > 0) {
-          setSessions(parsed);
-          setActiveSessionId(parsed[0].id);
-          setHasStarted(parsed[0].messages.length > 1);
+          const normalized = normalizeSessions(parsed);
+          setSessions(normalized);
+          setActiveSessionId(normalized[0].id);
+          setHasStarted(normalized[0].messages.length > 1);
         }
       } catch {
         const starter = buildStarterSession();
@@ -153,20 +216,190 @@ export default function HomePage() {
     );
   };
 
-  const handleFilePick = (event: ChangeEvent<HTMLInputElement>) => {
-    const names = Array.from(event.target.files ?? []).map((file) => file.name);
-    if (names.length === 0) {
+  const appendAssistantContent = (
+    sessionId: string,
+    messageId: string,
+    chunk: string
+  ) => {
+    updateSessionById(sessionId, (session) => ({
+      ...session,
+      updatedAt: new Date().toISOString(),
+      messages: session.messages.map((message) =>
+        message.id === messageId
+          ? {
+              ...message,
+              content: `${message.content}${chunk}`
+            }
+          : message
+      )
+    }));
+  };
+
+  const setAssistantMessage = (
+    sessionId: string,
+    messageId: string,
+    updater: (message: Message) => Message
+  ) => {
+    updateSessionById(sessionId, (session) => ({
+      ...session,
+      updatedAt: new Date().toISOString(),
+      messages: session.messages.map((message) =>
+        message.id === messageId ? updater(message) : message
+      )
+    }));
+  };
+
+  const upsertThinkingStep = (
+    sessionId: string,
+    messageId: string,
+    step: ThinkingStep
+  ) => {
+    setAssistantMessage(sessionId, messageId, (message) => {
+      const current = message.thinkingSteps ?? [];
+      const existingIndex = current.findIndex((item) => item.id === step.id);
+      if (existingIndex === -1) {
+        return {
+          ...message,
+          thinkingSteps: [...current, step]
+        };
+      }
+
+      const next = [...current];
+      next[existingIndex] = {
+        ...next[existingIndex],
+        ...step
+      };
+      return {
+        ...message,
+        thinkingSteps: next
+      };
+    });
+  };
+
+  const uploadFiles = async (files: File[]) => {
+    if (files.length === 0 || !activeSession) {
       return;
     }
 
-    const nextUploads = [...pendingFiles, ...names];
+    const conversationId = activeSession.id;
+    const placeholders = files.map((file) => ({
+      id: uid(),
+      name: file.name,
+      size: file.size,
+      status: "uploading" as const
+    }));
+
+    const nextUploads = [...pendingFiles, ...placeholders];
     setPendingFiles(nextUploads);
-    updateActiveSession((session) => ({
+    updateSessionById(conversationId, (session) => ({
       ...session,
       uploads: nextUploads,
       updatedAt: new Date().toISOString()
     }));
+
+    await Promise.all(
+      files.map(async (file, index) => {
+        const placeholder = placeholders[index];
+        const formData = new FormData();
+        formData.append("conversation_id", conversationId);
+        formData.append("file", file);
+
+        try {
+          const response = await fetch("/api/uploads", {
+            method: "POST",
+            body: formData
+          });
+          const payload = (await response.json()) as {
+            file?: UploadedDocument;
+            error?: string;
+          };
+          if (!response.ok || !payload.file) {
+            throw new Error(payload.error || "Upload failed.");
+          }
+
+          updateSessionById(conversationId, (session) => {
+            if (!session.uploads.some((item) => item.id === placeholder.id)) {
+              return session;
+            }
+            const uploads = session.uploads.map((item) =>
+              item.id === placeholder.id ? payload.file! : item
+            );
+            if (conversationId === activeSessionId) {
+              setPendingFiles(uploads);
+            }
+            return {
+              ...session,
+              uploads,
+              updatedAt: new Date().toISOString()
+            };
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Upload failed.";
+          updateSessionById(conversationId, (session) => {
+            if (!session.uploads.some((item) => item.id === placeholder.id)) {
+              return session;
+            }
+            const uploads = session.uploads.map((item) =>
+              item.id === placeholder.id
+                ? { ...item, status: "error" as const, error: message }
+                : item
+            );
+            if (conversationId === activeSessionId) {
+              setPendingFiles(uploads);
+            }
+            return {
+              ...session,
+              uploads,
+              updatedAt: new Date().toISOString()
+            };
+          });
+        }
+      })
+    );
+  };
+
+  const handleFilePick = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) {
+      return;
+    }
+
+    await uploadFiles(files);
     event.target.value = "";
+  };
+
+  const removeUpload = async (uploadId: string) => {
+    if (!activeSession) {
+      return;
+    }
+
+    const upload = pendingFiles.find((item) => item.id === uploadId);
+    if (!upload) {
+      return;
+    }
+
+    if (upload.savedPath) {
+      try {
+        await fetch("/api/uploads", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            conversation_id: activeSession.id,
+            upload_id: upload.id
+          })
+        });
+      } catch {}
+    }
+
+    const nextUploads = pendingFiles.filter((item) => item.id !== uploadId);
+    setPendingFiles(nextUploads);
+    updateActiveSession((session) => ({
+      ...session,
+      uploads: session.uploads.filter((item) => item.id !== uploadId),
+      updatedAt: new Date().toISOString()
+    }));
   };
 
   const sendMessage = async (event: FormEvent) => {
@@ -178,10 +411,32 @@ export default function HomePage() {
     }
 
     const userMessage: Message = { id: uid(), role: "user", content };
+    const assistantMessageId = uid();
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      role: "assistant",
+      content: "",
+      isStreaming: true,
+      thinkingSteps: [
+        {
+          id: "stream-init",
+          kind: "status",
+          title: "Preparing response",
+          detail: "Connecting to the agent stream.",
+          state: "info"
+        }
+      ]
+    };
     const conversationId = activeSession.id;
     const startedAt = new Date().toISOString();
     const nextTitle =
       activeSession.messages.length <= 1 ? content.slice(0, 36) : activeSession.title;
+    const readyUploads = pendingFiles.filter((item) => item.status === "ready");
+    const uploadDataPath =
+      readyUploads[0]?.savedPath?.replace(/[\\/][^\\/]+$/, "") ?? "";
+    const ragIndexPath = uploadDataPath
+      ? uploadDataPath.replace(/[\\/]uploads([\\/])/, "$1rag-index$1")
+      : "";
 
     setDraft("");
     setHasStarted(true);
@@ -191,12 +446,12 @@ export default function HomePage() {
       ...session,
       title: nextTitle || session.title,
       updatedAt: startedAt,
-      messages: [...session.messages, userMessage],
+      messages: [...session.messages, userMessage, assistantMessage],
       uploads: pendingFiles
     }));
 
     try {
-      const response = await fetch("/api/chat", {
+      const response = await fetch("/api/chat/stream", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -206,40 +461,167 @@ export default function HomePage() {
           conversation_id: conversationId,
           user_id: "web-user",
           metadata: {
-            uploads: pendingFiles,
+            uploads: readyUploads,
+            upload_data_path: uploadDataPath,
+            rag_index_path: ragIndexPath,
             model: activeSession.model
           }
         })
       });
 
-      const payload = (await response.json()) as { reply?: string; error?: string };
-      const assistantMessage: Message = {
-        id: uid(),
-        role: "assistant",
-        content:
-          payload.reply ||
+      if (!response.ok || !response.body) {
+        const payload = (await response.json().catch(() => ({}))) as {
+          reply?: string;
+          error?: string;
+        };
+        throw new Error(
           payload.error ||
-          "The response channel is connected, but no reply was returned."
+            payload.reply ||
+            "The response channel is connected, but no reply was returned."
+        );
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      const handleEvent = (eventType: string, payload: Record<string, unknown>) => {
+        if (eventType === "delta") {
+          appendAssistantContent(
+            conversationId,
+            assistantMessageId,
+            String(payload.content ?? "")
+          );
+          return;
+        }
+
+        if (eventType === "done") {
+          setAssistantMessage(conversationId, assistantMessageId, (message) => ({
+            ...message,
+            content:
+              message.content || String(payload.reply ?? message.content ?? ""),
+            isStreaming: false
+          }));
+          upsertThinkingStep(conversationId, assistantMessageId, {
+            id: "stream-complete",
+            kind: "status",
+            title: "Answer complete",
+            detail: "The full response has been streamed to the chat.",
+            state: "done"
+          });
+          return;
+        }
+
+        if (eventType === "error") {
+          const detail = String(payload.detail ?? "Failed to process message.");
+          setAssistantMessage(conversationId, assistantMessageId, (message) => ({
+            ...message,
+            content: detail,
+            isStreaming: false
+          }));
+          upsertThinkingStep(conversationId, assistantMessageId, {
+            id: "stream-error",
+            kind: "status",
+            title: "Stream failed",
+            detail,
+            state: "error"
+          });
+          return;
+        }
+
+        if (eventType === "status") {
+          upsertThinkingStep(conversationId, assistantMessageId, {
+            id: String(payload.id ?? uid()),
+            kind: "status",
+            title: String(payload.title ?? "Status"),
+            detail: String(payload.detail ?? ""),
+            state:
+              payload.state === "pending" ||
+              payload.state === "done" ||
+              payload.state === "error" ||
+              payload.state === "info"
+                ? payload.state
+                : "info"
+          });
+          return;
+        }
+
+        if (eventType === "tool_call" || eventType === "tool_result") {
+          upsertThinkingStep(conversationId, assistantMessageId, {
+            id: String(payload.id ?? uid()),
+            kind: "tool",
+            title: String(
+              payload.title ??
+                payload.tool_name ??
+                (eventType === "tool_call" ? "Calling tool" : "Tool result")
+            ),
+            detail: String(payload.detail ?? ""),
+            state:
+              payload.state === "pending" ||
+              payload.state === "done" ||
+              payload.state === "error" ||
+              payload.state === "info"
+                ? payload.state
+                : eventType === "tool_call"
+                  ? "pending"
+                  : "done"
+          });
+        }
       };
 
-      updateSessionById(conversationId, (session) => ({
-        ...session,
-        updatedAt: new Date().toISOString(),
-        messages: [...session.messages, assistantMessage]
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+
+        while (buffer.includes("\n\n")) {
+          const boundary = buffer.indexOf("\n\n");
+          const rawEvent = buffer.slice(0, boundary);
+          buffer = buffer.slice(boundary + 2);
+
+          const lines = rawEvent.split("\n");
+          let eventType = "message";
+          const dataLines: string[] = [];
+
+          lines.forEach((line) => {
+            if (line.startsWith("event:")) {
+              eventType = line.slice(6).trim();
+            } else if (line.startsWith("data:")) {
+              dataLines.push(line.slice(5).trim());
+            }
+          });
+
+          if (dataLines.length === 0) {
+            continue;
+          }
+
+          const payload = JSON.parse(dataLines.join("\n")) as Record<string, unknown>;
+          handleEvent(eventType, payload);
+        }
+      }
+
+      setAssistantMessage(conversationId, assistantMessageId, (message) => ({
+        ...message,
+        isStreaming: false
       }));
     } catch {
-      const fallbackMessage: Message = {
-        id: uid(),
-        role: "assistant",
+      setAssistantMessage(conversationId, assistantMessageId, (message) => ({
+        ...message,
         content:
-          "The UI is ready, but the API is not reachable yet. Start the Python API server and try again."
-      };
-
-      updateSessionById(conversationId, (session) => ({
-        ...session,
-        updatedAt: new Date().toISOString(),
-        messages: [...session.messages, fallbackMessage]
+          "The UI is ready, but the API is not reachable yet. Start the Python API server and try again.",
+        isStreaming: false
       }));
+      upsertThinkingStep(conversationId, assistantMessageId, {
+        id: "stream-unreachable",
+        kind: "status",
+        title: "Backend unavailable",
+        detail:
+          "The UI is ready, but the API is not reachable yet. Start the Python API server and try again.",
+        state: "error"
+      });
     } finally {
       setIsSending(false);
     }
@@ -272,6 +654,8 @@ export default function HomePage() {
         messageViewportRef={messageViewportRef}
         onDraftChange={setDraft}
         onFilePick={handleFilePick}
+        onDropFiles={uploadFiles}
+        onRemoveUpload={removeUpload}
         onSendMessage={sendMessage}
         onModelChange={(value) =>
           updateActiveSession((session) => ({

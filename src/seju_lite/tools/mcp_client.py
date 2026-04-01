@@ -89,11 +89,13 @@ class MCPToolWrapper:
 
     def __init__(self, session: Any, server_name: str, tool_def: Any, tool_timeout: int = 30):
         self._session = session
+        self._server_name = server_name
         self._original_name = tool_def.name
         self.name = f"mcp_{server_name}_{tool_def.name}"
         self._description = tool_def.description or tool_def.name
         self._parameters = tool_def.inputSchema or {"type": "object", "properties": {}}
         self._tool_timeout = tool_timeout
+        self._context: dict[str, Any] = {}
 
         self.definition = {
             "type": "function",
@@ -104,7 +106,19 @@ class MCPToolWrapper:
             },
         }
 
+    def set_context(self, **kwargs: Any) -> None:
+        self._context = dict(kwargs)
+
     async def run(self, **kwargs: Any) -> str:
+        if self._server_name == "simple_rag":
+            metadata = self._context.get("metadata") or {}
+            upload_data_path = metadata.get("upload_data_path")
+            rag_index_path = metadata.get("rag_index_path")
+            if upload_data_path and "data_path" not in kwargs:
+                kwargs = {**kwargs, "data_path": upload_data_path}
+            if rag_index_path and "index_path" not in kwargs:
+                kwargs = {**kwargs, "index_path": rag_index_path}
+
         # Notion MCP compatibility: some models emit {"parent":{"type":"workspace"}}
         # while Notion API expects {"parent":{"workspace": true}}.
         if self.name.endswith("API-post-page"):

@@ -15,7 +15,6 @@ from seju_lite.runtime.runner import (
 )
 from seju_lite.runtime.single_instance import InstanceLock
 from seju_lite.tools.mcp_server import run_mcp_server
-from seju_lite.tools.rag_mcp_server import run_rag_mcp_server
 
 app = typer.Typer(
     help="seju-lite CLI",
@@ -158,31 +157,6 @@ def mcp_server_command(
         name=name,
         read_root=Path(cfg.tools.readFile.rootDir),
         web_max_chars=cfg.tools.web.maxChars,
-    )
-
-
-@app.command("rag-mcp-server")
-def rag_mcp_server_command(
-    transport: str = typer.Option(
-        "stdio",
-        "--transport",
-        "-t",
-        help="MCP transport (stdio/sse/streamable-http)",
-    ),
-    name: str = typer.Option("seju-rag", "--name", "-n", help="MCP server name"),
-    db: str = typer.Option(
-        "./workspace/rag/rag.db",
-        "--db",
-        help="SQLite path for RAG index",
-    ),
-) -> None:
-    """
-    Start a lightweight RAG MCP server (SQLite FTS-based).
-    """
-    run_rag_mcp_server(
-        transport=transport,
-        name=name,
-        db_path=Path(db),
     )
 
 
