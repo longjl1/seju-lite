@@ -607,19 +607,21 @@ export default function HomePage() {
         ...message,
         isStreaming: false
       }));
-    } catch {
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error && error.message.trim()
+          ? error.message
+          : "The UI is ready, but the API is not reachable yet. Start the Python API server and try again.";
       setAssistantMessage(conversationId, assistantMessageId, (message) => ({
         ...message,
-        content:
-          "The UI is ready, but the API is not reachable yet. Start the Python API server and try again.",
+        content: errorMessage,
         isStreaming: false
       }));
       upsertThinkingStep(conversationId, assistantMessageId, {
         id: "stream-unreachable",
         kind: "status",
         title: "Backend unavailable",
-        detail:
-          "The UI is ready, but the API is not reachable yet. Start the Python API server and try again.",
+        detail: errorMessage,
         state: "error"
       });
     } finally {

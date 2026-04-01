@@ -1,0 +1,26 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir uv
+
+COPY pyproject.toml uv.lock README.md ./
+COPY src ./src
+COPY assets ./assets
+COPY config.docker.json ./config.docker.json
+
+RUN uv sync --frozen --no-dev
+
+RUN mkdir -p /app/workspace
+
+EXPOSE 8000
+
+CMD ["uv", "run", "seju-lite", "api", "--config", "config.docker.json", "--host", "0.0.0.0", "--port", "8000"]

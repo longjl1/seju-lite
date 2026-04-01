@@ -1,0 +1,47 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: seju-lite-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SEJU_API_CORS_ORIGINS: https://${DOMAIN:-localhost},http://${DOMAIN:-localhost},http://localhost:3000
+    volumes:
+      - ./workspace:/app/workspace
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: seju-lite-web
+    restart: unless-stopped
+    environment:
+      SEJU_API_BASE_URL: http://api:8000
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+    depends_on:
+      - api
+
+  caddy:
+    image: caddy:2
+    container_name: seju-lite-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  caddy_data:
+  caddy_config:

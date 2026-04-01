@@ -15,7 +15,7 @@
 }
 
 .dark {
-  --bg: #000000;
+  --bg: #1c1c1c;
   --fg: #ffffff;
   --menu-bg: var(--onhold);
   --onhold:#77777777;

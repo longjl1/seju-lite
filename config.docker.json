@@ -1,0 +1,98 @@
+{
+  "app": {
+    "name": "seju-lite",
+    "env": "prod",
+    "logLevel": "INFO"
+  },
+  "agent": {
+    "name": "SejuLite",
+    "systemPrompt": "回答尽量结构清晰，优先使用短标题、项目符号和分段。适度使用 emoji 提升可读性，每段 1-2 个，不要滥用。",
+    "mode": "single",
+    "defaultAgent": "main",
+    "enableLlmPlanner": false,
+    "plannerConfidenceThreshold": 0.65,
+    "routing": {
+      "local": ["local", "本地", "文件", "memory", "notion", "写入", "读取"],
+      "web": ["web", "网页", "网站", "url", "http", "https", "新闻", "搜索", "总结"]
+    },
+    "maxIterations": 15,
+    "maxHistory": 8,
+    "enableSubagent": true,
+    "subagentMaxIterations": 12,
+    "workspace": "./workspace",
+    "enableMemory": true,
+    "enableSkills": true,
+    "enableTools": true
+  },
+  "provider": {
+    "kind": "deepseek",
+    "apiKey": "${DEEPSEEK_API_KEY}",
+    "apiBase": "https://api.deepseek.com",
+    "model": "deepseek-chat",
+    "temperature": 0.3,
+    "maxOutputTokens": 1200
+  },
+  "channels": {
+    "telegram": {
+      "enabled": false,
+      "token": "${TELEGRAM_BOT_TOKEN}",
+      "allowFrom": [],
+      "allowGroups": false,
+      "groupPolicy": "mention"
+    },
+    "whatsapp": {
+      "enabled": false,
+      "token": "",
+      "phoneNumberId": "",
+      "apiBase": "https://graph.facebook.com/v22.0",
+      "allowFrom": []
+    },
+    "discord": {
+      "enabled": false,
+      "token": "${DISCORD_BOT_TOKEN}",
+      "allowFrom": [],
+      "groupPolicy": "mention"
+    }
+  },
+  "tools": {
+    "time": {
+      "enabled": false
+    },
+    "readFile": {
+      "enabled": false,
+      "rootDir": "./workspace"
+    },
+    "shell": {
+      "enabled": false,
+      "allowedCommands": ["pwd", "ls", "cat"],
+      "timeoutSec": 8
+    },
+    "web": {
+      "enabled": false,
+      "maxChars": 12000
+    },
+    "mcp": {
+      "enabled": true,
+      "servers": {
+        "seju_local": {
+          "type": "stdio",
+          "command": "uv",
+          "args": [
+            "run",
+            "seju-lite",
+            "mcp-server",
+            "--config",
+            "config.docker.json",
+            "--transport",
+            "stdio"
+          ],
+          "enabledTools": ["*"],
+          "toolTimeout": 10
+        }
+      }
+    }
+  },
+  "storage": {
+    "sessionFile": "./workspace/sessions.json"
+  }
+}
