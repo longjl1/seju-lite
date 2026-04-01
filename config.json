@@ -6,7 +6,7 @@
   },
   "agent": {
     "name": "SejuLite",
-    "systemPrompt": "",
+    "systemPrompt": "回答尽量结构清晰，优先使用短标题、项目符号和分段。适度使用 emoji 提升可读性，每段 1-2 个，不要滥用。",
     "mode": "single",
     "defaultAgent": "main",
     "enableLlmPlanner": false,

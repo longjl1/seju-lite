@@ -8,7 +8,6 @@ import { Message, Session } from "./types";
 
 const MODELS = ["deepseek-chat", "gpt-4.1-mini", "gemini-2.0-flash"];
 const STORAGE_KEY = "seju-lite-web-sessions";
-const THEME_KEY = "seju-lite-web-theme";
 
 const INTRO_MESSAGE =
   "seju.neo is a lightweight multi-agent runtime. Start with a task, a file, or a question and the workspace stays uncluttered.";
@@ -51,7 +50,6 @@ export default function HomePage() {
   const [activeSessionId, setActiveSessionId] = useState<string>("");
   const [draft, setDraft] = useState("");
   const [pendingFiles, setPendingFiles] = useState<string[]>([]);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [isSending, setIsSending] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -59,7 +57,6 @@ export default function HomePage() {
 
   useEffect(() => {
     const storedSessions = window.localStorage.getItem(STORAGE_KEY);
-    const storedTheme = window.localStorage.getItem(THEME_KEY);
 
     if (storedSessions) {
       try {
@@ -79,10 +76,6 @@ export default function HomePage() {
       setSessions([starter]);
       setActiveSessionId(starter.id);
     }
-
-    if (storedTheme === "light" || storedTheme === "dark") {
-      setTheme(storedTheme);
-    }
   }, []);
 
   useEffect(() => {
@@ -90,11 +83,6 @@ export default function HomePage() {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
     }
   }, [sessions]);
-
-  useEffect(() => {
-    window.localStorage.setItem(THEME_KEY, theme);
-    document.documentElement.dataset.theme = theme;
-  }, [theme]);
 
   useEffect(() => {
     const viewport = messageViewportRef.current;
@@ -123,6 +111,27 @@ export default function HomePage() {
     setDraft("");
     setPendingFiles([]);
     setHasStarted(false);
+  };
+
+  const deleteSession = (sessionId: string) => {
+    setSessions((current) => {
+      const remaining = current.filter((session) => session.id !== sessionId);
+
+      if (remaining.length === 0) {
+        const next = buildStarterSession();
+        setActiveSessionId(next.id);
+        setDraft("");
+        setPendingFiles([]);
+        setHasStarted(false);
+        return [next];
+      }
+
+      if (activeSessionId === sessionId) {
+        setActiveSessionId(remaining[0].id);
+      }
+
+      return remaining;
+    });
   };
 
   const updateActiveSession = (updater: (session: Session) => Session) => {
@@ -241,10 +250,7 @@ export default function HomePage() {
   }
 
   return (
-    <main
-      data-theme={theme}
-      className="flex min-h-screen bg-[var(--bg)] text-[var(--fg)] transition-colors duration-500"
-    >
+    <main className="flex min-h-screen bg-[var(--bg)] text-[var(--fg)] transition-colors duration-500">
       <Sidebar
         sidebarOpen={sidebarOpen}
         sessions={sessions}
@@ -252,10 +258,10 @@ export default function HomePage() {
         onToggleSidebar={() => setSidebarOpen((current) => !current)}
         onCreateSession={createNewSession}
         onSelectSession={setActiveSessionId}
+        onDeleteSession={deleteSession}
         formatTime={formatTime}
       />
       <ChatPanel
-        theme={theme}
         activeSession={activeSession}
         hasStarted={hasStarted}
         isSending={isSending}
@@ -264,7 +270,6 @@ export default function HomePage() {
         models={MODELS}
         fileInputRef={fileInputRef}
         messageViewportRef={messageViewportRef}
-        onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
         onDraftChange={setDraft}
         onFilePick={handleFilePick}
         onSendMessage={sendMessage}
