@@ -13,11 +13,12 @@ RUN apt-get update \
 RUN pip install --no-cache-dir uv
 
 COPY pyproject.toml uv.lock README.md ./
+
+RUN uv sync --frozen --no-dev
+
 COPY src ./src
 COPY assets ./assets
 COPY config.docker.json ./config.docker.json
-
-RUN uv sync --frozen --no-dev
 
 RUN mkdir -p /app/workspace
 

@@ -112,6 +112,7 @@ class ToolsConfig(BaseModel):
 
 class StorageConfig(BaseModel):
     sessionFile: Path = Path("./workspace/sessions.json")
+    scheduleFile: Path = Path("./workspace/schedules.json")
 
 
 class RootConfig(BaseModel):

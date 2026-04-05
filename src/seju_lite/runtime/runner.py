@@ -185,6 +185,10 @@ async def close_app(app: SejuApp) -> None:
     """
     Best-effort shutdown hook.
     """
+    if app.scheduler is not None:
+        with contextlib.suppress(Exception):
+            await app.scheduler.stop()
+
     with contextlib.suppress(Exception):
         await app.agent.subagents.close()
 

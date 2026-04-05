@@ -21,6 +21,8 @@ from seju_lite.providers.gemini_provider import GeminiProvider
 from seju_lite.providers.openai_compatible import OpenAICompatibleProvider
 from seju_lite.providers.registry import find_by_kind
 from seju_lite.tools.mcp_client import MCPClientHub
+from seju_lite.runtime.scheduler import Scheduler
+from seju_lite.runtime.schedules import ScheduleService, ScheduleStore
 
 
 @dataclass
@@ -33,6 +35,8 @@ class SejuApp:
     workflow_orchestrator: WorkflowOrchestrator
     channels: dict[str, Any]
     mcp_client_hub: MCPClientHub | None = None
+    scheduler: Scheduler | None = None
+    schedule_service: ScheduleService | None = None
 
 
 def setup_logging(level: str = "INFO") -> None:
@@ -174,6 +178,16 @@ async def create_app(config_path: str | Path) -> SejuApp:
             group_policy=config.channels.discord.groupPolicy,
         )
 
+    scheduler = Scheduler()
+    schedule_service = ScheduleService(
+        provider=provider,
+        scheduler=scheduler,
+        store=ScheduleStore(config.storage.scheduleFile),
+        run_task_callback=workflow_orchestrator.handle,
+    )
+    schedule_service.load()
+    await scheduler.start()
+
     return SejuApp(
         config=config,
         bus=bus,
@@ -183,4 +197,6 @@ async def create_app(config_path: str | Path) -> SejuApp:
         workflow_orchestrator=workflow_orchestrator,
         channels=channel_instances,
         mcp_client_hub=mcp_client_hub,
+        scheduler=scheduler,
+        schedule_service=schedule_service,
     )

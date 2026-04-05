@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from seju_lite.bus.events import InboundMessage
 from seju_lite.runtime.app import SejuApp, create_app
 from seju_lite.runtime.runner import close_app
+from seju_lite.runtime.schedules import ScheduleTask
 
 logger = logging.getLogger("seju_lite.api")
 
@@ -38,6 +39,43 @@ class HealthResponse(BaseModel):
     status: str
     app: str
     model: str
+
+
+class ScheduleParseRequest(BaseModel):
+    message: str = Field(min_length=1)
+    conversation_id: str = Field(min_length=1)
+    user_id: str = Field(default="web-user", min_length=1)
+
+
+class ScheduleCreateRequest(ScheduleParseRequest):
+    create: bool = True
+
+
+class ScheduleParseResponse(BaseModel):
+    name: str
+    prompt: str
+    every_seconds: int
+    run_immediately: bool = False
+
+
+class ScheduleSummary(BaseModel):
+    id: str
+    name: str
+    prompt: str
+    every_seconds: int
+    channel: str
+    chat_id: str
+    user_id: str
+    enabled: bool
+    run_immediately: bool
+    created_at: str
+    updated_at: str
+    last_run_at: str | None = None
+    last_result: str | None = None
+
+    @classmethod
+    def from_task(cls, task: ScheduleTask) -> "ScheduleSummary":
+        return cls(**task.model_dump())
 
 
 def _format_sse_event(event_type: str, payload: dict[str, Any]) -> bytes:
@@ -241,5 +279,66 @@ def build_api(config_path: str | Path = "config.json") -> FastAPI:
                 "X-Accel-Buffering": "no",
             },
         )
+
+    @app.post("/schedules/parse", response_model=ScheduleParseResponse)
+    async def parse_schedule(payload: ScheduleParseRequest) -> ScheduleParseResponse:
+        app_ctx = state["app_ctx"]
+        if app_ctx is None or app_ctx.schedule_service is None:
+            raise HTTPException(status_code=503, detail="Schedule service is not ready")
+
+        try:
+            parsed = await app_ctx.schedule_service.parse_natural_language(
+                text=payload.message,
+                channel="web",
+                chat_id=payload.conversation_id,
+                user_id=payload.user_id,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        return ScheduleParseResponse(**parsed.model_dump())
+
+    @app.get("/schedules", response_model=list[ScheduleSummary])
+    async def list_schedules() -> list[ScheduleSummary]:
+        app_ctx = state["app_ctx"]
+        if app_ctx is None or app_ctx.schedule_service is None:
+            raise HTTPException(status_code=503, detail="Schedule service is not ready")
+
+        return [ScheduleSummary.from_task(task) for task in app_ctx.schedule_service.list_tasks()]
+
+    @app.post("/schedules", response_model=ScheduleSummary)
+    async def create_schedule(payload: ScheduleCreateRequest) -> ScheduleSummary:
+        app_ctx = state["app_ctx"]
+        if app_ctx is None or app_ctx.schedule_service is None:
+            raise HTTPException(status_code=503, detail="Schedule service is not ready")
+
+        try:
+            parsed = await app_ctx.schedule_service.parse_natural_language(
+                text=payload.message,
+                channel="web",
+                chat_id=payload.conversation_id,
+                user_id=payload.user_id,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        task = app_ctx.schedule_service.create_task(
+            parsed,
+            channel="web",
+            chat_id=payload.conversation_id,
+            user_id=payload.user_id,
+        )
+        return ScheduleSummary.from_task(task)
+
+    @app.delete("/schedules/{task_id}")
+    async def delete_schedule(task_id: str) -> dict[str, str]:
+        app_ctx = state["app_ctx"]
+        if app_ctx is None or app_ctx.schedule_service is None:
+            raise HTTPException(status_code=503, detail="Schedule service is not ready")
+
+        deleted = app_ctx.schedule_service.delete_task(task_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Schedule task not found")
+        return {"status": "deleted", "id": task_id}
 
     return app
