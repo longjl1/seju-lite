@@ -78,6 +78,28 @@ class ScheduleSummary(BaseModel):
         return cls(**task.model_dump())
 
 
+def _format_delete_all_confirmation(count: int) -> str:
+    return f"Deleted {count} scheduled task(s)."
+
+
+def _format_schedule_confirmation(task: ScheduleTask) -> str:
+    interval = task.every_seconds
+    if interval % 86400 == 0:
+        every_text = f"每 {interval // 86400} 天"
+    elif interval % 3600 == 0:
+        every_text = f"每 {interval // 3600} 小时"
+    elif interval % 60 == 0:
+        every_text = f"每 {interval // 60} 分钟"
+    else:
+        every_text = f"每 {interval} 秒"
+
+    return (
+        f"已为你创建定时任务：{task.name}\n"
+        f"执行频率：{every_text}\n"
+        f"执行内容：{task.prompt}"
+    )
+
+
 def _format_sse_event(event_type: str, payload: dict[str, Any]) -> bytes:
     return f"event: {event_type}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
 
@@ -113,6 +135,76 @@ def _build_cors_config() -> dict[str, Any]:
 def build_api(config_path: str | Path = "config.json") -> FastAPI:
     state: dict[str, SejuApp | None] = {"app_ctx": None}
     api_key = os.getenv("SEJU_API_KEY", "").strip()
+    pending_delete_all_confirmations: dict[str, dict[str, Any]] = {}
+
+    def _confirmation_key(conversation_id: str, user_id: str) -> str:
+        return f"{conversation_id}:{user_id}"
+
+    def _prune_expired_confirmations() -> None:
+        now = time.time()
+        expired = [
+            key for key, value in pending_delete_all_confirmations.items()
+            if float(value.get("expires_at", 0.0)) <= now
+        ]
+        for key in expired:
+            pending_delete_all_confirmations.pop(key, None)
+
+    async def _handle_schedule_intent(payload: ChatRequest) -> str | None:
+        app_ctx = state["app_ctx"]
+        if app_ctx is None or app_ctx.schedule_service is None:
+            return None
+
+        schedule_service = app_ctx.schedule_service
+        _prune_expired_confirmations()
+        confirm_key = _confirmation_key(payload.conversation_id, payload.user_id)
+        pending = pending_delete_all_confirmations.get(confirm_key)
+
+        if pending and schedule_service.looks_like_delete_confirmation(payload.message):
+            deleted = schedule_service.delete_all_tasks()
+            pending_delete_all_confirmations.pop(confirm_key, None)
+            return _format_delete_all_confirmation(deleted)
+
+        intent = await schedule_service.classify_intent(payload.message)
+
+        if intent.intent == "delete_all_schedules" and intent.confidence >= 0.7:
+            count = len(schedule_service.list_tasks())
+            if count == 0:
+                pending_delete_all_confirmations.pop(confirm_key, None)
+                return "There are no scheduled tasks to delete."
+
+            pending_delete_all_confirmations[confirm_key] = {
+                "expires_at": time.time() + 300,
+                "count": count,
+            }
+            return (
+                f"I found {count} scheduled task(s). "
+                "Reply with '\u786e\u8ba4\u5220\u9664' or 'confirm delete' within 5 minutes to remove them all."
+            )
+
+        if intent.intent == "create_schedule" and intent.confidence >= 0.7:
+            try:
+                parsed = await schedule_service.parse_natural_language(
+                    text=payload.message,
+                    channel="web",
+                    chat_id=payload.conversation_id,
+                    user_id=payload.user_id,
+                )
+            except ValueError:
+                logger.info("Schedule-like chat could not be parsed; fallback to normal chat")
+                return None
+
+            task = schedule_service.create_task(
+                parsed,
+                channel="web",
+                chat_id=payload.conversation_id,
+                user_id=payload.user_id,
+            )
+            return _format_schedule_confirmation(task)
+
+        if pending and intent.intent != "delete_all_schedules":
+            pending_delete_all_confirmations.pop(confirm_key, None)
+
+        return None
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -174,6 +266,13 @@ def build_api(config_path: str | Path = "config.json") -> FastAPI:
         if app_ctx is None:
             raise HTTPException(status_code=503, detail="App context is not ready")
 
+        schedule_reply = await _handle_schedule_intent(payload)
+        if schedule_reply is not None:
+            return ChatResponse(
+                reply=schedule_reply,
+                conversation_id=payload.conversation_id,
+            )
+
         inbound = InboundMessage(
             channel="web",
             sender_id=payload.user_id,
@@ -196,6 +295,48 @@ def build_api(config_path: str | Path = "config.json") -> FastAPI:
         app_ctx = state["app_ctx"]
         if app_ctx is None:
             raise HTTPException(status_code=503, detail="App context is not ready")
+
+        schedule_reply = await _handle_schedule_intent(payload)
+        if schedule_reply is not None:
+            async def schedule_event_stream():
+                yield _format_sse_event(
+                    "status",
+                    {
+                        "type": "status",
+                        "id": "schedule-intent-handled",
+                        "title": "Schedule request handled",
+                        "detail": "The scheduler manager has processed your request.",
+                        "state": "done",
+                    },
+                )
+                yield _format_sse_event(
+                    "answer_start",
+                    {
+                        "type": "answer_start",
+                        "conversation_id": payload.conversation_id,
+                    },
+                )
+                for chunk in _chunk_text(schedule_reply):
+                    yield _format_sse_event("delta", {"type": "delta", "content": chunk})
+                    await asyncio.sleep(0.02)
+                yield _format_sse_event(
+                    "done",
+                    {
+                        "type": "done",
+                        "reply": schedule_reply,
+                        "conversation_id": payload.conversation_id,
+                    },
+                )
+
+            return StreamingResponse(
+                schedule_event_stream(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no",
+                },
+            )
 
         inbound = InboundMessage(
             channel="web",
@@ -305,6 +446,15 @@ def build_api(config_path: str | Path = "config.json") -> FastAPI:
             raise HTTPException(status_code=503, detail="Schedule service is not ready")
 
         return [ScheduleSummary.from_task(task) for task in app_ctx.schedule_service.list_tasks()]
+
+    @app.delete("/schedules")
+    async def delete_all_schedules() -> dict[str, int | str]:
+        app_ctx = state["app_ctx"]
+        if app_ctx is None or app_ctx.schedule_service is None:
+            raise HTTPException(status_code=503, detail="Schedule service is not ready")
+
+        deleted = app_ctx.schedule_service.delete_all_tasks()
+        return {"status": "deleted", "count": deleted}
 
     @app.post("/schedules", response_model=ScheduleSummary)
     async def create_schedule(payload: ScheduleCreateRequest) -> ScheduleSummary:

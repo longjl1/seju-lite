@@ -34,4 +34,5 @@ export type Session = {
   updatedAt: string;
   messages: Message[];
   uploads: UploadedDocument[];
+  scheduleReceipts?: Record<string, string>;
 };

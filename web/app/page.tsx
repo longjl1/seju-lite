@@ -12,6 +12,22 @@ const STORAGE_KEY = "seju-lite-web-sessions";
 const INTRO_MESSAGE =
   "seju.neo is a lightweight multi-agent runtime. Start with a task, a file, or a question and the workspace stays uncluttered.";
 
+type ScheduleSummary = {
+  id: string;
+  name: string;
+  prompt: string;
+  every_seconds: number;
+  channel: string;
+  chat_id: string;
+  user_id: string;
+  enabled: boolean;
+  run_immediately: boolean;
+  created_at: string;
+  updated_at: string;
+  last_run_at?: string | null;
+  last_result?: string | null;
+};
+
 function uid() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
@@ -27,6 +43,7 @@ function buildStarterSession(): Session {
     model: MODELS[0],
     updatedAt: now,
     uploads: [],
+    scheduleReceipts: {},
     messages: [
       {
         id: uid(),
@@ -88,6 +105,10 @@ function normalizeSessions(raw: Session[]): Session[] {
   return raw.map((session) => ({
     ...session,
     uploads: normalizeUploads(session.uploads),
+    scheduleReceipts:
+      session.scheduleReceipts && typeof session.scheduleReceipts === "object"
+        ? session.scheduleReceipts
+        : {},
     messages: Array.isArray(session.messages)
       ? session.messages.map((message) => ({
           ...message,
@@ -167,6 +188,45 @@ export default function HomePage() {
     }
   }, [activeSession]);
 
+  useEffect(() => {
+    if (sessions.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const syncSchedules = async () => {
+      try {
+        const response = await fetch("/api/schedules", { cache: "no-store" });
+        if (!response.ok) {
+          return;
+        }
+
+        const tasks = (await response.json()) as ScheduleSummary[];
+        if (cancelled || !Array.isArray(tasks)) {
+          return;
+        }
+
+        tasks.forEach((task) => {
+          if (!task.last_result || !task.last_run_at) {
+            return;
+          }
+          appendScheduledResult(task.chat_id, task);
+        });
+      } catch {}
+    };
+
+    void syncSchedules();
+    const timer = window.setInterval(() => {
+      void syncSchedules();
+    }, 10000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [sessions.length]);
+
   const createNewSession = () => {
     const next = buildStarterSession();
     setSessions((current) => [next, ...current]);
@@ -214,6 +274,38 @@ export default function HomePage() {
         session.id === sessionId ? updater(session) : session
       )
     );
+  };
+
+  const appendScheduledResult = (sessionId: string, task: ScheduleSummary) => {
+    if (!task.last_result || !task.last_run_at) {
+      return;
+    }
+
+    const receipt = task.last_run_at;
+
+    updateSessionById(sessionId, (session) => {
+      const receipts = session.scheduleReceipts ?? {};
+      if (receipts[task.id] === receipt) {
+        return session;
+      }
+
+      return {
+        ...session,
+        updatedAt: receipt,
+        scheduleReceipts: {
+          ...receipts,
+          [task.id]: receipt
+        },
+        messages: [
+          ...session.messages,
+          {
+            id: uid(),
+            role: "assistant",
+            content: `Scheduled task: ${task.name}\n\n${task.last_result}`
+          }
+        ]
+      };
+    });
   };
 
   const appendAssistantContent = (

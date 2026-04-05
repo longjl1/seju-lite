@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 import logging
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Awaitable, Callable
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -39,6 +39,12 @@ class ScheduleParseResult(BaseModel):
     prompt: str
     every_seconds: int = Field(gt=0)
     run_immediately: bool = False
+
+
+class ScheduleIntentResult(BaseModel):
+    intent: str = "normal_chat"
+    confidence: float = 0.0
+    reason: str = ""
 
 
 class ScheduleStore:
@@ -81,7 +87,7 @@ class ScheduleService:
         provider: LLMProvider | None,
         scheduler: Scheduler,
         store: ScheduleStore,
-        run_task_callback,
+        run_task_callback: Callable[[InboundMessage], Awaitable[str]],
     ) -> None:
         self.provider = provider
         self.scheduler = scheduler
@@ -103,7 +109,89 @@ class ScheduleService:
     def get_task(self, task_id: str) -> ScheduleTask | None:
         return self._tasks.get(task_id)
 
-    def create_task(self, parsed: ScheduleParseResult, *, channel: str, chat_id: str, user_id: str) -> ScheduleTask:
+    def looks_like_schedule_request(self, text: str) -> bool:
+        source = (text or "").strip().lower()
+        if not source:
+            return False
+
+        markers = [
+            "每隔",
+            "每分钟",
+            "每小时",
+            "每天",
+            "定时",
+            "提醒我",
+            "周期",
+            "every ",
+            "schedule",
+            "remind me",
+        ]
+        if any(marker in source for marker in markers):
+            return True
+        return self._parse_with_rules(text) is not None
+
+    def looks_like_delete_all_request(self, text: str) -> bool:
+        source = (text or "").strip().lower()
+        if not source:
+            return False
+
+        markers = [
+            "删除所有定时任务",
+            "删除全部定时任务",
+            "清空定时任务",
+            "停止所有定时任务",
+            "取消所有定时任务",
+            "remove all schedules",
+            "delete all schedules",
+            "clear all schedules",
+            "stop all schedules",
+            "cancel all schedules",
+        ]
+        return any(marker in source for marker in markers)
+
+    def looks_like_delete_confirmation(self, text: str) -> bool:
+        source = (text or "").strip().lower()
+        if not source:
+            return False
+
+        markers = [
+            "\u786e\u8ba4\u5220\u9664",
+            "\u786e\u8ba4",
+            "\u662f\u7684\u5220\u9664",
+            "confirm delete",
+            "confirm",
+            "yes delete",
+        ]
+        return any(marker in source for marker in markers)
+
+    async def classify_intent(self, text: str) -> ScheduleIntentResult:
+        if self.looks_like_delete_all_request(text):
+            return ScheduleIntentResult(
+                intent="delete_all_schedules",
+                confidence=1.0,
+                reason="rule_delete_all",
+            )
+        if self.looks_like_schedule_request(text):
+            return ScheduleIntentResult(
+                intent="create_schedule",
+                confidence=1.0,
+                reason="rule_create_schedule",
+            )
+
+        llm_result = await self._classify_with_llm(text)
+        if llm_result is not None:
+            return llm_result
+
+        return ScheduleIntentResult(intent="normal_chat", confidence=0.0, reason="fallback")
+
+    def create_task(
+        self,
+        parsed: ScheduleParseResult,
+        *,
+        channel: str,
+        chat_id: str,
+        user_id: str,
+    ) -> ScheduleTask:
         task = ScheduleTask(
             name=parsed.name,
             prompt=parsed.prompt,
@@ -127,6 +215,15 @@ class ScheduleService:
         self.scheduler.remove_job(task_id)
         self._persist()
         return True
+
+    def delete_all_tasks(self) -> int:
+        task_ids = list(self._tasks.keys())
+        for task_id in task_ids:
+            self.scheduler.remove_job(task_id)
+        count = len(task_ids)
+        self._tasks.clear()
+        self._persist()
+        return count
 
     async def run_task(self, task_id: str) -> str:
         task = self._tasks.get(task_id)
@@ -160,7 +257,12 @@ class ScheduleService:
         chat_id: str,
         user_id: str,
     ) -> ScheduleParseResult:
-        parsed = await self._parse_with_llm(text=text, channel=channel, chat_id=chat_id, user_id=user_id)
+        parsed = await self._parse_with_llm(
+            text=text,
+            channel=channel,
+            chat_id=chat_id,
+            user_id=user_id,
+        )
         if parsed is not None:
             return parsed
 
@@ -220,6 +322,45 @@ class ScheduleService:
             logger.warning("LLM schedule parser returned invalid payload")
             return None
 
+    async def _classify_with_llm(self, text: str) -> ScheduleIntentResult | None:
+        if self.provider is None:
+            return None
+
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are a strict intent classifier for schedule management.\n"
+                    "Classify the user request into one intent.\n"
+                    "Allowed intents: normal_chat, create_schedule, delete_all_schedules.\n"
+                    "Return JSON only with this schema:\n"
+                    '{"intent":"normal_chat|create_schedule|delete_all_schedules","confidence":0.0,"reason":"short"}\n'
+                    "Use delete_all_schedules only when the user is clearly asking to remove or stop every scheduled task.\n"
+                    "Use create_schedule only when the user is clearly asking to create a recurring task.\n"
+                    "Otherwise use normal_chat."
+                ),
+            },
+            {"role": "user", "content": text},
+        ]
+        try:
+            response = await self.provider.generate(messages=messages, tools=None)
+        except Exception:
+            logger.exception("LLM schedule intent classifier failed")
+            return None
+
+        payload = self._extract_json_object(response.content or "")
+        if not payload:
+            return None
+        try:
+            result = ScheduleIntentResult.model_validate(payload)
+        except Exception:
+            logger.warning("LLM schedule intent classifier returned invalid payload")
+            return None
+
+        if result.intent not in {"normal_chat", "create_schedule", "delete_all_schedules"}:
+            return None
+        return result
+
     @staticmethod
     def _extract_json_object(raw: str) -> dict[str, Any]:
         text = (raw or "").strip()
@@ -245,8 +386,6 @@ class ScheduleService:
                 return {}
             return parsed if isinstance(parsed, dict) else {}
 
-
-    ''' if llm parsing fails, try to parse with rules '''
     @staticmethod
     def _parse_with_rules(text: str) -> ScheduleParseResult | None:
         source = (text or "").strip()
@@ -257,6 +396,9 @@ class ScheduleService:
             (r"每隔\s*(\d+)\s*分钟", 60),
             (r"每隔\s*(\d+)\s*小时", 3600),
             (r"每隔\s*(\d+)\s*天", 86400),
+            (r"每\s*(\d+)\s*分钟", 60),
+            (r"每\s*(\d+)\s*小时", 3600),
+            (r"每\s*(\d+)\s*天", 86400),
             (r"every\s+(\d+)\s+minutes?", 60),
             (r"every\s+(\d+)\s+hours?", 3600),
             (r"every\s+(\d+)\s+days?", 86400),
@@ -271,8 +413,15 @@ class ScheduleService:
             return None
 
         prompt = re.sub(r"^(请|帮我|麻烦)\s*", "", source).strip()
-        prompt = re.sub(r"(每隔\s*\d+\s*(分钟|小时|天)|every\s+\d+\s+(minutes?|hours?|days?))", "", prompt, flags=re.IGNORECASE).strip(" ，,。.") or source
-        run_immediately = bool(re.search(r"(现在|立刻|马上|立即|start now|immediately)", source, flags=re.IGNORECASE))
+        prompt = re.sub(
+            r"(每隔\s*\d+\s*(分钟|小时|天)|每\s*\d+\s*(分钟|小时|天)|every\s+\d+\s+(minutes?|hours?|days?))",
+            "",
+            prompt,
+            flags=re.IGNORECASE,
+        ).strip(" ，,。.") or source
+        run_immediately = bool(
+            re.search(r"(现在|立刻|马上|立即|start now|immediately)", source, flags=re.IGNORECASE)
+        )
         name = prompt[:40] if len(prompt) > 40 else prompt
         return ScheduleParseResult(
             name=name or "scheduled task",
@@ -324,6 +473,7 @@ class ScheduleService:
 
 
 __all__ = [
+    "ScheduleIntentResult",
     "ScheduleParseResult",
     "ScheduleService",
     "ScheduleStore",
