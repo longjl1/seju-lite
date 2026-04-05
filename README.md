@@ -90,6 +90,83 @@ Run API server:
 uv run seju-lite api --config config.json --host 127.0.0.1 --port 8000
 ```
 
+Run web UI in local development mode:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Open:
+
+```text
+http://127.0.0.1:3000
+```
+
+## Local Development
+
+For day-to-day development, run backend and frontend separately:
+
+1. Backend
+
+```bash
+uv run seju-lite api --config config.json --host 127.0.0.1 --port 8000
+```
+
+2. Frontend
+
+```bash
+cd web
+npm run dev
+```
+
+This mode is recommended when editing code because reloads are faster and debugging is simpler than rebuilding Docker images.
+
+## Docker Workflow
+
+Build and start the local Docker stack:
+
+```bash
+docker compose up -d --build
+```
+
+Start existing containers without rebuilding:
+
+```bash
+docker compose up -d
+```
+
+Rebuild only the backend service:
+
+```bash
+docker compose up -d --build api
+```
+
+Rebuild only the frontend service:
+
+```bash
+docker compose up -d --build web
+```
+
+Check running containers:
+
+```bash
+docker compose ps
+```
+
+Follow logs:
+
+```bash
+docker compose logs -f
+```
+
+Stop the stack:
+
+```bash
+docker compose down
+```
+
 ## 🔐 Environment Variables
 
 Set credentials in `.env` (example keys):
