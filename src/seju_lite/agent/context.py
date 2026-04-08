@@ -6,6 +6,7 @@ import base64
 from pathlib import Path
 from typing import Any
 
+from seju_lite.agent.context_utils import filter_low_signal_history
 from seju_lite.agent.memory import MemoryStore
 from seju_lite.agent.skills import SkillsLoader
 from seju_lite.utils.utils import get_current_datetime
@@ -23,36 +24,44 @@ class ContextBuilder:
         self.memory = MemoryStore(workspace)
         self.skills = SkillsLoader(workspace)
 
-    def build_system_prompt(self, skill_names: list[str] | None = None) -> str:
+    def build_system_prompt(
+        self,
+        skill_names: list[str] | None = None,
+        *,
+        include_memory: bool = True,
+        include_skills: bool = True,
+    ) -> str:
         parts = [self._get_sys_identity(), self.system_prompt]
 
         bootstrap = self._load_bootstrap_files()
         if bootstrap:
             parts.append(bootstrap)
 
-        memory = self.memory.get_memory_context()
-        if memory:
-            parts.append(f"# Memory\n\n{memory}")
+        if include_memory:
+            memory = self.memory.get_compact_memory_context()
+            if memory:
+                parts.append(f"# Memory\n\n{memory}")
 
-        always_skills = self.skills.get_always_skills()
-        if always_skills:
-            always_content = self.skills.load_skills_for_context(always_skills)
-            if always_content:
-                parts.append(f"# Active Skills\n\n{always_content}")
+        if include_skills:
+            always_skills = self.skills.get_always_skills()
+            if always_skills:
+                always_content = self.skills.load_skills_for_context(always_skills)
+                if always_content:
+                    parts.append(f"# Active Skills\n\n{always_content}")
 
-        if skill_names:
-            selected = self.skills.load_skills_for_context(skill_names)
-            if selected:
-                parts.append(f"# Requested Skills\n\n{selected}")
+            if skill_names:
+                selected = self.skills.load_skills_for_context(skill_names)
+                if selected:
+                    parts.append(f"# Requested Skills\n\n{selected}")
 
-        skills_summary = self.skills.build_skills_summary()
-        if skills_summary:
-            parts.append(
-                "# Skills\n\n"
-                "The following skills extend your capabilities. "
-                "Use the read_file tool to open a skill's SKILL.md when needed.\n\n"
-                f"{skills_summary}"
-            )
+            skills_summary = self.skills.build_skills_summary()
+            if skills_summary:
+                parts.append(
+                    "# Skills\n\n"
+                    "The following skills extend your capabilities. "
+                    "Use the read_file tool to open a skill's SKILL.md when needed.\n\n"
+                    f"{skills_summary}"
+                )
 
         return "\n\n---\n\n".join(parts)
 
@@ -151,8 +160,11 @@ Your workspace is at: {workspace_path}
         skill_names: list[str] | None = None,
         media: list[str] | None = None,
         current_role: str = "user",
+        include_memory: bool = True,
+        include_skills: bool = True,
     ) -> list[dict[str, Any]]:
-        
+        history = filter_low_signal_history(history)
+
         # add runtime as prefix
         runtime = self.build_runtime_context(channel, chat_id, metadata)
 
@@ -166,7 +178,14 @@ Your workspace is at: {workspace_path}
             merged_user = [{"type": "text", "text": runtime}] + user_content
 
         return [
-            {"role": "system", "content": self.build_system_prompt(skill_names)},
+            {
+                "role": "system",
+                "content": self.build_system_prompt(
+                    skill_names,
+                    include_memory=include_memory,
+                    include_skills=include_skills,
+                ),
+            },
             *history,
             {"role": current_role, "content": merged_user},
         ]

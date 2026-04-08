@@ -216,7 +216,7 @@ def build_api(config_path: str | Path = "config.json") -> FastAPI:
             await close_app(app_ctx)
             state["app_ctx"] = None
 
-    app = FastAPI(title="seju-lite API", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="seju-lite API", version="1.0.0", lifespan=lifespan)
     cors_config = _build_cors_config()
     app.add_middleware(CORSMiddleware, **cors_config)
 

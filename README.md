@@ -10,6 +10,12 @@
 
 `seju-lite` is the runtime package. `seju.neo` is the product-facing identity.
 
+> 1.0.0 update
+> `seju-lite` is now promoted to a formal `1.0.0` release.
+> The context pipeline has been refined into a lighter v2 direction: long-term memory is injected through a compact structured view instead of raw full-file prompt stuffing.
+> Short-term history now filters low-signal turns such as repetitive greetings and identity-check chatter before building the next request context.
+> The runtime stays lightweight and custom, while memory/context behavior is now closer to a production-style separation between session context and long-term memory.
+
 
 
 ## ✨ Why seju.neo

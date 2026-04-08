@@ -10,6 +10,8 @@ from typing import Awaitable, Callable
 
 from seju_lite.agent.command_router import CommandRouter
 from seju_lite.agent.context import ContextBuilder
+from seju_lite.agent.context_policy import ContextPolicyDecider
+from seju_lite.agent.context_utils import filter_low_signal_history
 from seju_lite.agent.memory import MemoryConsolidator
 from seju_lite.agent.subagent import SubagentManager
 from seju_lite.session.manager import SessionManager
@@ -53,6 +55,9 @@ class AgentLoop:
         self.context = ContextBuilder(
             workspace=self.workspace,
             system_prompt=config.agent.systemPrompt,
+        )
+        self.context_policy = ContextPolicyDecider(
+            default_history_limit=self.config.agent.maxHistory
         )
         self.sessions = SessionManager(config.storage.sessionFile)
         self.memory_consolidator = MemoryConsolidator(
@@ -336,7 +341,13 @@ class AgentLoop:
         if not workflow_internal:
             await self.memory_consolidator.auto_consolidate(session)
 
-        history = session.get_history(self.config.agent.maxHistory)
+        policy = self.context_policy.decide(inbound.content)
+        history = (
+            session.get_history(policy.history_limit)
+            if policy.include_history
+            else []
+        )
+        history = filter_low_signal_history(history)
 
         self._set_tool_context(
             channel=inbound.channel,
@@ -351,6 +362,8 @@ class AgentLoop:
             channel=inbound.channel,
             chat_id=inbound.chat_id,
             metadata=inbound.metadata,
+            include_memory=policy.include_memory,
+            include_skills=policy.include_skills,
         )
 
         final_content, all_messages = await self._run_agent_loop(

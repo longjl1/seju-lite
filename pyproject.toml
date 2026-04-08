@@ -1,6 +1,6 @@
 [project]
 name = "seju-lite"
-version = "0.2.0"
+version = "1.0.0"
 description = "A lightweight AI assistant inspired by nanobot"
 readme = "README.md"
 requires-python = ">=3.11"

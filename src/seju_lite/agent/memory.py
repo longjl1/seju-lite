@@ -5,6 +5,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from seju_lite.agent.context_utils import parse_memory_markdown
+
 
 _SAVE_MEMORY_TOOL = [
     {
@@ -62,6 +64,14 @@ class MemoryStore:
     def get_memory_context(self) -> str:
         memory = self.read_long_term()
         return f"## Long-term Memory\n{memory}" if memory else ""
+
+    def get_compact_memory_context(self, max_chars: int = 1600) -> str:
+        memory = self.read_long_term()
+        if not memory:
+            return ""
+        structured = parse_memory_markdown(memory)
+        compact = structured.render(max_chars=max_chars)
+        return f"## Long-term Memory\n{compact}" if compact else ""
 
 
 class MemoryConsolidator:
