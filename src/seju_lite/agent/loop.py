@@ -147,6 +147,7 @@ class AgentLoop:
         await asyncio.sleep(1)
         os.execv(sys.executable, [sys.executable, "-m", "seju_lite", *sys.argv[1:]])
 
+    # handle threaded execution 
     def _schedule_background(self, coro) -> None:
         task = asyncio.create_task(coro)
         self._background_tasks.append(task)

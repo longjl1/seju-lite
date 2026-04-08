@@ -146,6 +146,8 @@ class SubagentManager:
                                 "content": result,
                             }
                         )
+                
+                # return if the llm does not call any tool
                 else:
                     if response.content and response.content.strip():
                         final_result = response.content

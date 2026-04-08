@@ -6,6 +6,13 @@ import inspect
 import logging
 
 from seju_lite.bus.events import InboundMessage, OutboundMessage
+from seju_lite.cli.console import (
+    print_assistant_reply,
+    print_chat_banner,
+    print_error_reply,
+    print_goodbye,
+    prompt_user,
+)
 from seju_lite.runtime.app import SejuApp
 
 logger = logging.getLogger("seju_lite.runtime")
@@ -19,6 +26,11 @@ def _enter_cli_quiet_mode() -> dict[str, int | bool]:
         "httpcore",
         "openai",
         "asyncio",
+        "seju_lite",
+        "seju_lite.agent",
+        "seju_lite.agent.orchestrator",
+        "seju_lite.agent.workflow",
+        "seju_lite.runtime",
     ]
     prev_levels: dict[str, int] = {}
     for name in targets:
@@ -138,8 +150,7 @@ async def run_cli_chat(app: SejuApp, session_key: str = "cli:local") -> None:
     Reuses the same orchestrator path, but bypasses Telegram/bus.
     """
     logger.info("Starting CLI chat session: %s", session_key)
-    print("seju-lite CLI chat")
-    print("Type /exit to quit.\n")
+    print_chat_banner(session_key)
     quiet_state = _enter_cli_quiet_mode()
 
     if ":" in session_key:
@@ -150,16 +161,16 @@ async def run_cli_chat(app: SejuApp, session_key: str = "cli:local") -> None:
     try:
         while True:
             try:
-                user_text = await asyncio.to_thread(input, "You > ")
+                user_text = await asyncio.to_thread(prompt_user)
             except (EOFError, KeyboardInterrupt):
-                print("\nBye.")
+                print_goodbye()
                 return
 
             if not user_text.strip():
                 continue
 
             if user_text.strip().lower() in {"/exit", "exit", "quit"}:
-                print("Bye.")
+                print_goodbye()
                 return
 
             inbound = InboundMessage(
@@ -172,11 +183,16 @@ async def run_cli_chat(app: SejuApp, session_key: str = "cli:local") -> None:
 
             try:
                 reply = await app.workflow_orchestrator.handle(inbound)
+                is_error = False
             except Exception as exc:
                 logger.exception("CLI chat failed")
                 reply = _format_runtime_error(exc)
+                is_error = True
 
-            print(f"Bot > {reply}\n")
+            if is_error:
+                print_error_reply(reply)
+            else:
+                print_assistant_reply(reply)
     finally:
         _exit_cli_quiet_mode(quiet_state)
 

@@ -246,13 +246,12 @@ async def connect_mcp_servers(
             matched_enabled: set[str] = set()
             raw_names = [tool_def.name for tool_def in tools_resp.tools]
             wrapped_names = [f"mcp_{server_name}_{tool_def.name}" for tool_def in tools_resp.tools]
-            registered_wrapped_names: list[str] = []
 
             if raw_names:
                 logger.info(
-                    "MCP server '{}': available tools: {}",
+                    "MCP server '{}': connected, {} tools available",
                     server_name,
-                    ", ".join(raw_names),
+                    len(raw_names),
                 )
             else:
                 logger.warning("MCP server '{}': no tools available", server_name)
@@ -277,7 +276,6 @@ async def connect_mcp_servers(
                 ''' registry '''
                 registry.register(wrapper)
                 registered_count += 1
-                registered_wrapped_names.append(wrapper.name)
 
                 if tool_def.name in enabled_tools:
                     matched_enabled.add(tool_def.name)
@@ -300,12 +298,6 @@ async def connect_mcp_servers(
                 server_name,
                 registered_count,
             )
-            if registered_wrapped_names:
-                logger.info(
-                    "MCP server '{}': registered wrapped tools: {}",
-                    server_name,
-                    ", ".join(registered_wrapped_names),
-                )
         except Exception as exc:
             logger.error("MCP server '{}': failed to connect: {}", server_name, exc)
 

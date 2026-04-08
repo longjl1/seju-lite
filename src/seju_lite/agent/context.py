@@ -152,7 +152,11 @@ Your workspace is at: {workspace_path}
         media: list[str] | None = None,
         current_role: str = "user",
     ) -> list[dict[str, Any]]:
+        
+        # add runtime as prefix
         runtime = self.build_runtime_context(channel, chat_id, metadata)
+
+        # build user content with media if exists
         user_content = self._build_user_content(current_message, media)
 
         # Keep a single current turn to avoid consecutive same-role messages.

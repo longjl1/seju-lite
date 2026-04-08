@@ -86,6 +86,19 @@ class WebToolConfig(BaseModel):
     maxChars: int = 12000
 
 
+class PermissionRuleConfig(BaseModel):
+    tool: str = "*"
+    path: str | None = None
+    content: str | None = None
+    behavior: Literal["allow", "deny"] = "deny"
+
+
+class PermissionsConfig(BaseModel):
+    enabled: bool = False
+    mode: Literal["default", "strict"] = "default"
+    rules: list[PermissionRuleConfig] = Field(default_factory=list)
+
+
 class MCPServerToolConfig(BaseModel):
     type: str | None = None
     command: str | None = None
@@ -108,6 +121,7 @@ class ToolsConfig(BaseModel):
     shell: ShellToolConfig = ShellToolConfig()
     web: WebToolConfig = WebToolConfig()
     mcp: MCPToolConfig = MCPToolConfig()
+    permissions: PermissionsConfig = PermissionsConfig()
 
 
 class StorageConfig(BaseModel):

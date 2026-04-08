@@ -20,9 +20,10 @@ from seju_lite.providers.base import LLMProvider
 from seju_lite.providers.gemini_provider import GeminiProvider
 from seju_lite.providers.openai_compatible import OpenAICompatibleProvider
 from seju_lite.providers.registry import find_by_kind
-from seju_lite.tools.mcp_client import MCPClientHub
+from seju_lite.runtime.security.permission_manager import PermissionManager, PermissionRule
 from seju_lite.runtime.scheduler import Scheduler
 from seju_lite.runtime.schedules import ScheduleService, ScheduleStore
+from seju_lite.tools.mcp_client import MCPClientHub
 
 
 @dataclass
@@ -116,6 +117,23 @@ async def create_app(config_path: str | Path) -> SejuApp:
     bus = MessageBus()
     provider = build_provider(config)
     agent = AgentLoop(config=config, provider=provider, bus=bus)
+    permission_rules = [
+        PermissionRule(
+            tool=rule.tool,
+            path=rule.path,
+            content=rule.content,
+            behavior=rule.behavior,
+        )
+        for rule in config.tools.permissions.rules
+    ]
+    agent.tools.set_permission_manager(
+        PermissionManager(
+            enabled=config.tools.permissions.enabled,
+            mode=config.tools.permissions.mode,
+            rules=permission_rules,
+            workspace=config.agent.workspace,
+        )
+    )
     agent_registry = build_default_registry(agent)
     orchestrator = AgentOrchestrator(
         agents=agent_registry,

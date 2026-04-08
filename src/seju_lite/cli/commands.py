@@ -6,6 +6,7 @@ from pathlib import Path
 import typer
 
 from seju_lite.api.server import build_api
+from seju_lite.cli.console import print_config_summary, print_provider_response, print_tools_table
 from seju_lite.config.loader import load_config
 from seju_lite.runtime.app import create_app
 from seju_lite.runtime.runner import (
@@ -73,9 +74,11 @@ def config_validate_command(
     Validate config file only.
     """
     cfg = load_config(config)
-    typer.echo(f"Config OK: {Path(config).resolve()}")
-    typer.echo(f"App: {cfg.app.name}")
-    typer.echo(f"Provider: {cfg.provider.kind} / {cfg.provider.model}")
+    print_config_summary(
+        str(Path(config).resolve()),
+        cfg.app.name,
+        f"{cfg.provider.kind} / {cfg.provider.model}",
+    )
 
 
 @app.command("tool-list")
@@ -95,16 +98,7 @@ async def _tool_list_async(config_path: str) -> None:
         if not defs:
             typer.echo("No tools registered.")
             return
-
-        typer.echo("Registered tools:")
-        for item in defs:
-            fn = item.get("function", {})
-            name = fn.get("name", "<unknown>")
-            desc = fn.get("description", "")
-            if desc:
-                typer.echo(f"- {name}: {desc}")
-            else:
-                typer.echo(f"- {name}")
+        print_tools_table(defs)
     finally:
         await close_app(app_ctx)
 
@@ -127,12 +121,7 @@ async def _test_provider_async(config_path: str, prompt: str) -> None:
             messages=[{"role": "user", "content": prompt}],
             tools=None,
         )
-        typer.echo("=== Provider Response ===")
-        typer.echo(response.content or "")
-        if response.tool_calls:
-            typer.echo("\n=== Tool Calls ===")
-            for tc in response.tool_calls:
-                typer.echo(f"- {tc.name}: {tc.arguments}")
+        print_provider_response(response.content or "", response.tool_calls)
     finally:
         await close_app(app_ctx)
 

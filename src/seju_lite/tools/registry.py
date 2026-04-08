@@ -1,6 +1,10 @@
 class ToolRegistry:
-    def __init__(self) -> None:
+    def __init__(self, permission_manager=None) -> None:
         self._tools = {}
+        self._permission_manager = permission_manager
+
+    def set_permission_manager(self, permission_manager) -> None:
+        self._permission_manager = permission_manager
 
     def register(self, tool) -> None:
         self._tools[tool.name] = tool # self._tools["time"] = TimeTool()
@@ -38,6 +42,10 @@ class ToolRegistry:
         # if tools are not definded
         if not tool:
             return f"Tool '{name}' does not exist!"
+        if self._permission_manager is not None:
+            decision = self._permission_manager.check(name, arguments) # PermissionDecision(behavior="...", reason="...")
+            if decision.behavior == "deny":
+                return f"Permission denied for tool '{name}': {decision.reason}"
         try:
             return await tool.run(**arguments) 
         except Exception as e:
