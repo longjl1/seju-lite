@@ -1,6 +1,6 @@
 # seju.neo
 
-[中文](README.zh-CN.md) | English | [Contrast Test](README.contrast-test.md)
+[中文](README.zh-CN.md) | English | [Neo Design](README.contrast-test.md)
 
 <!-- <p align="center">
   <img src="assets/banner.svg" alt="seju.neo banner" length="1600" width="400"/>
