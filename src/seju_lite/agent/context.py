@@ -37,10 +37,11 @@ class ContextBuilder:
         if bootstrap:
             parts.append(bootstrap)
 
+        '''注入 memory 文本到 system prompt '''
         if include_memory:
             memory = self.memory.get_compact_memory_context()
             if memory:
-                parts.append(f"# Memory\n\n{memory}")
+                parts.append(f"# Memory\n\n{memory}") 
 
         if include_skills:
             always_skills = self.skills.get_always_skills()

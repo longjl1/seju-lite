@@ -26,6 +26,10 @@ class AgentConfig(BaseModel):
     enableMemory: bool = True
     enableSkills: bool = True
     enableTools: bool = True
+    contextMode: Literal["old", "v2_trim", "v2_llm_summary"] = "old"
+    v2SummaryTriggerMessages: int = 20
+    v2SummaryKeepRecentMessages: int = 8
+    v2SummaryMaxMessagesToSummarize: int = 24
 
 
 class ProviderConfig(BaseModel):

@@ -1,0 +1,145 @@
+{
+  "key": "summary_session",
+  "messages": [
+    {
+      "role": "user",
+      "content": "我们先确认一下目标：我要做一个 seju-lite v2，用来减少长会话里的上下文膨胀。",
+      "timestamp": "2026-04-07T08:00:00"
+    },
+    {
+      "role": "assistant",
+      "content": "目标明确。重点可以放在三件事：短期历史裁剪、长期记忆压缩注入，以及运行时切换路径尽量可回撤。",
+      "timestamp": "2026-04-07T08:00:10"
+    },
+    {
+      "role": "user",
+      "content": "我不想直接推翻旧逻辑，所以最好所有新东西先放到单独的 v2 文件夹。",
+      "timestamp": "2026-04-07T08:03:00"
+    },
+    {
+      "role": "assistant",
+      "content": "可以，先把 summarization、structured memory、context assembler 和 adapter 都放进去，旧路径只做一个很小的接线点。",
+      "timestamp": "2026-04-07T08:03:16"
+    },
+    {
+      "role": "user",
+      "content": "那 DeerFlow 对短期历史的处理你怎么看？",
+      "timestamp": "2026-04-07T08:08:00"
+    },
+    {
+      "role": "assistant",
+      "content": "它的核心是：超过阈值后，保留最近窗口，把更老的消息压成一条 summary，并且尽量不切断 assistant/tool 关联消息。",
+      "timestamp": "2026-04-07T08:08:18"
+    },
+    {
+      "role": "user",
+      "content": "我还在意一个问题：HISTORY.md 到底是不是 prompt 的直接来源？",
+      "timestamp": "2026-04-07T08:12:00"
+    },
+    {
+      "role": "assistant",
+      "content": "从代码看不是。HISTORY.md 主要用于归档，而真正进入 prompt 的是 MEMORY.md 和 session 的 recent history。",
+      "timestamp": "2026-04-07T08:12:14"
+    },
+    {
+      "role": "user",
+      "content": "那旧版里 *history 展开的到底是什么？",
+      "timestamp": "2026-04-07T08:16:00"
+    },
+    {
+      "role": "assistant",
+      "content": "就是 session.get_history(...) 取出来的最近消息列表，然后直接展开进 messages 数组，位于 system prompt 和当前 user turn 之间。",
+      "timestamp": "2026-04-07T08:16:19"
+    },
+    {
+      "role": "user",
+      "content": "我还记得我们后来做了 compare-context-tokens 命令。",
+      "timestamp": "2026-04-07T08:20:00"
+    },
+    {
+      "role": "assistant",
+      "content": "对，它可以快速比较 old、v2_trim、v2_llm_summary 的上下文大小，但那只是本地估算，不是官方 usage。",
+      "timestamp": "2026-04-07T08:20:15"
+    },
+    {
+      "role": "user",
+      "content": "所以我们又做了一个单独脚本，直接请求 provider，读取 usage 里的 prompt_tokens 和 completion_tokens。",
+      "timestamp": "2026-04-07T08:24:00"
+    },
+    {
+      "role": "assistant",
+      "content": "是的，而且对 v2_llm_summary 我们会把预摘要调用和最终回答调用的 usage 合并，这样更接近真实成本。",
+      "timestamp": "2026-04-07T08:24:21"
+    },
+    {
+      "role": "user",
+      "content": "不过如果历史太短，v2_llm_summary 和 v2_trim 看起来就会一样。",
+      "timestamp": "2026-04-07T08:29:00"
+    },
+    {
+      "role": "assistant",
+      "content": "没错，因为默认 trigger_messages 是 20，低于阈值时不会真的发起 summary LLM 调用。",
+      "timestamp": "2026-04-07T08:29:18"
+    },
+    {
+      "role": "user",
+      "content": "那就需要一组更长的 fixture，让 session 历史稳定超过默认阈值。",
+      "timestamp": "2026-04-07T08:34:00"
+    },
+    {
+      "role": "assistant",
+      "content": "可以，我会做一组 extra_long_summary_case，把消息数拉到二十多条，确保在不改配置的情况下也能触发 v2_llm_summary。",
+      "timestamp": "2026-04-07T08:34:22"
+    },
+    {
+      "role": "user",
+      "content": "顺便也把内容写得更像真实项目讨论，而不是全是重复句子。",
+      "timestamp": "2026-04-07T08:38:00"
+    },
+    {
+      "role": "assistant",
+      "content": "没问题，我会让它包含 runtime、memory、deer-flow、token usage、fixture 设计和回滚策略这些主题，这样测试更贴近真实上下文。",
+      "timestamp": "2026-04-07T08:38:20"
+    },
+    {
+      "role": "user",
+      "content": "另外我也希望看到 story case 和 tooling case 的差异，看看创作场景和工程场景在压缩后会不会表现不同。",
+      "timestamp": "2026-04-07T08:43:00"
+    },
+    {
+      "role": "assistant",
+      "content": "这是个好点子。创作场景里 continuity 更敏感，而工程场景里 high-signal facts 更重要，summary 的质量要求并不完全一样。",
+      "timestamp": "2026-04-07T08:43:27"
+    },
+    {
+      "role": "user",
+      "content": "再确认一次，当前旧路径不是把 HISTORY.md 整个塞进 prompt，对吧？",
+      "timestamp": "2026-04-07T08:48:00"
+    },
+    {
+      "role": "assistant",
+      "content": "对，不是。旧路径是 system prompt 里读 MEMORY.md，再拼 recent session history。HISTORY.md 更多是长期归档日志。",
+      "timestamp": "2026-04-07T08:48:16"
+    },
+    {
+      "role": "user",
+      "content": "那 v2 的价值主要就是把旧的 recent history 做得更聪明，同时把 memory 注入压缩得更短。",
+      "timestamp": "2026-04-07T08:53:00"
+    },
+    {
+      "role": "assistant",
+      "content": "是的，而且这种价值在长会话下更明显，因为 prompt cost 的差距会随着历史增长被放大。",
+      "timestamp": "2026-04-07T08:53:17"
+    },
+    {
+      "role": "user",
+      "content": "最后我还想确认一点：如果真的触发 summary，那么官方 usage 里应该体现为 API Calls 比 v2_trim 更多。",
+      "timestamp": "2026-04-07T08:58:00"
+    }
+  ],
+  "metadata": {
+    "case_type": "extra_long_summary_trigger"
+  },
+  "updated_at": "2026-04-07T08:58:00",
+  "last_consolidated": 0
+}

@@ -1,0 +1,43 @@
+{
+  "key": "sample_session",
+  "messages": [
+    {
+      "role": "user",
+      "content": "我们之前讨论过 context 太长会影响响应速度。",
+      "timestamp": "2026-04-08T21:00:00"
+    },
+    {
+      "role": "assistant",
+      "content": "对，长期会话会让上下文越来越厚，短请求也会被旧上下文拖慢。",
+      "timestamp": "2026-04-08T21:00:05"
+    },
+    {
+      "role": "user",
+      "content": "后来我们又讨论了 deer-flow 的 summarization 和 structured memory。",
+      "timestamp": "2026-04-08T21:05:00"
+    },
+    {
+      "role": "assistant",
+      "content": "是的，它把短期历史压缩和长期记忆结构化做了拆分。",
+      "timestamp": "2026-04-08T21:05:08"
+    },
+    {
+      "role": "user",
+      "content": "我想要一个更轻量的 v2，不重写 runtime。",
+      "timestamp": "2026-04-08T21:10:00"
+    },
+    {
+      "role": "assistant",
+      "content": "可以，先做隔离的 v2 文件夹，再用一个小 adapter 接线。",
+      "timestamp": "2026-04-08T21:10:10"
+    },
+    {
+      "role": "user",
+      "content": "现在请基于这些历史继续回答。",
+      "timestamp": "2026-04-08T21:15:00"
+    }
+  ],
+  "metadata": {},
+  "updated_at": "2026-04-08T21:15:00",
+  "last_consolidated": 0
+}

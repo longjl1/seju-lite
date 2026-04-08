@@ -1,0 +1,75 @@
+{
+  "key": "story_session",
+  "messages": [
+    {
+      "role": "user",
+      "content": "我们之前一直在讨论一个叫星星月花的设定，我希望这个植物既像科幻生物，也像记忆系统的隐喻。",
+      "timestamp": "2026-04-07T09:00:00"
+    },
+    {
+      "role": "assistant",
+      "content": "可以，把它设计成一种生活在行星浅海中的发光植物。它既是自然生命，也像一个可见化的记忆节点网络，会在夜晚发出和情绪相关的光。",
+      "timestamp": "2026-04-07T09:00:12"
+    },
+    {
+      "role": "user",
+      "content": "我还想让这个世界观和 seju-lite 的 memory 系统一样，有长期记忆、短期记忆、归档和摘要的区别。",
+      "timestamp": "2026-04-07T09:05:00"
+    },
+    {
+      "role": "assistant",
+      "content": "那可以设定成海面上的花群记录短期波动，海底的根系保存长期记忆，漂浮的花粉负责把旧经历压缩成可以传播的摘要。这样故事世界和你的 agent 架构就能形成镜像关系。",
+      "timestamp": "2026-04-07T09:05:18"
+    },
+    {
+      "role": "user",
+      "content": "但是我担心以后每次让我讲故事，模型都会把之前这些设定全部带出来，结果所有故事都长得越来越像。",
+      "timestamp": "2026-04-07T09:10:00"
+    },
+    {
+      "role": "assistant",
+      "content": "这是典型的上下文污染问题。工业级产品通常会按请求类型选择性注入上下文：创作型请求默认少带历史，只有你明确说“基于之前设定”时才开启 continuity 模式。",
+      "timestamp": "2026-04-07T09:10:16"
+    },
+    {
+      "role": "user",
+      "content": "后来我们不是还讨论了 deer-flow 吗？它用 summarization middleware 来裁剪短期历史，对吧。",
+      "timestamp": "2026-04-07T09:18:00"
+    },
+    {
+      "role": "assistant",
+      "content": "对。它保留最近窗口，把更早的内容压缩成 summary，并且把长期记忆结构化存储。这个思路很适合迁移到 seju-lite 的 v2，但不需要把整个 runtime 重写成 LangGraph。",
+      "timestamp": "2026-04-07T09:18:15"
+    },
+    {
+      "role": "user",
+      "content": "我希望最后能对比 old 和 v2 两条路径在同一份历史上的 token 消耗，最好还能用真实 provider 的 usage 字段来比较。",
+      "timestamp": "2026-04-07T09:25:00"
+    },
+    {
+      "role": "assistant",
+      "content": "可以做。最稳妥的方法是准备固定的 MEMORY.md、HISTORY.md 和 session fixture，然后让 old、v2_trim、v2_llm_summary 分别构建消息，再调用 provider 读取官方 usage。",
+      "timestamp": "2026-04-07T09:25:22"
+    },
+    {
+      "role": "user",
+      "content": "那在故事层面，我想保留一种感觉：记忆不是简单数据库，而是会发光、会衰减、会被重新讲述的东西。",
+      "timestamp": "2026-04-07T09:31:00"
+    },
+    {
+      "role": "assistant",
+      "content": "这个很好。你可以把长期记忆写成海底沉积层，把短期记忆写成潮汐表面的花影，而 summary 则像是被风带走的发光种子。这样每次重述都会保留轮廓，但细节会发生适度压缩。",
+      "timestamp": "2026-04-07T09:31:21"
+    },
+    {
+      "role": "user",
+      "content": "现在如果我要你按照之前的历史讲个故事，就应该保留这些设定；但如果我只是说讲个故事，就不该默认把它们全部带入。",
+      "timestamp": "2026-04-07T09:40:00"
+    }
+  ],
+  "metadata": {
+    "case_type": "creative_long_session"
+  },
+  "updated_at": "2026-04-07T09:40:00",
+  "last_consolidated": 0
+}

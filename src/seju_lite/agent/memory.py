@@ -58,7 +58,7 @@ class MemoryStore:
         self.memory_file.write_text(content, encoding="utf-8")
 
     def append_history(self, entry: str) -> None: 
-        with open(self.history_file, "a", encoding="utf-8") as f: #add to long-term
+        with open(self.history_file, "a", encoding="utf-8") as f: #add to HISTORY.md
             f.write(entry.rstrip() + "\n\n")
     # read and get as prompt.. 包装
     def get_memory_context(self) -> str:
@@ -155,6 +155,7 @@ class MemoryConsolidator:
             if not entry:
                 return self._fail_or_raw_archive(messages)
 
+            # consolidation 成功后调用 append_history
             self.store.append_history(entry)
             if update != current_memory:
                 self.store.write_long_term(update)
@@ -172,6 +173,7 @@ class MemoryConsolidator:
         self._consecutive_failures = 0
         return True
 
+    # raw archive 时也会写到 HISTORY.md
     def _raw_archive(self, messages: list[dict[str, Any]]) -> None:
         ts = datetime.now().strftime("%Y-%m-%d %H:%M")
         payload = self._format_messages(messages)

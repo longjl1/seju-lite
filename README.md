@@ -16,6 +16,32 @@
 > Short-term history now filters low-signal turns such as repetitive greetings and identity-check chatter before building the next request context.
 > The runtime stays lightweight and custom, while memory/context behavior is now closer to a production-style separation between session context and long-term memory.
 
+### Context Cost Improvement
+
+`v2` introduces two experimental context modes in addition to the legacy path:
+
+- `old`: the legacy context path
+- `v2_trim`: a trim-only v2 path that reduces prompt size without making an extra summary LLM call
+- `v2_llm_summary`: a v2 path that first summarizes older history with an extra LLM call, then builds the final prompt
+
+For long-session comparisons, the clearest term is **prompt token cost** or **input context token cost**.
+
+In one long-session provider-usage test:
+
+- `old`: `prompt_tokens = 1392`, `total_tokens = 1408`
+- `v2_trim`: `prompt_tokens = 305`, `total_tokens = 321`
+- `v2_llm_summary`: `prompt_tokens = 934`, `total_tokens = 966`
+
+This means:
+
+- `v2_trim` reduced prompt token cost by about `78%` compared with `old`
+- `v2_llm_summary` still reduced total token cost by about `31%` compared with `old`, while preserving more continuity through a summary pre-pass
+
+Practical interpretation:
+
+- choose `v2_trim` when the goal is the lowest possible prompt cost
+- choose `v2_llm_summary` when continuity matters more, and one extra summary call is acceptable
+
 
 
 ## ✨ Why seju.neo

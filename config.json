@@ -16,7 +16,7 @@
       "web": ["web", "网页", "网站", "url", "http", "https", "新闻", "搜索", "总结"]
     },
     "maxIterations": 15,
-    "maxHistory": 8,
+    "maxHistory": 32,
     "enableSubagent": true,
     "subagentMaxIterations": 12,
     "workspace": "./workspace",

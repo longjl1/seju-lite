@@ -14,6 +14,7 @@ from seju_lite.agent.context_policy import ContextPolicyDecider
 from seju_lite.agent.context_utils import filter_low_signal_history
 from seju_lite.agent.memory import MemoryConsolidator
 from seju_lite.agent.subagent import SubagentManager
+from seju_lite.agent.v2.runtime_adapter import RuntimeAdapterConfigV2, RuntimeContextAdapterV2
 from seju_lite.session.manager import SessionManager
 from seju_lite.tools.message_helper import MessageHelperTool
 from seju_lite.tools.read_file_tool import ReadFileTool
@@ -55,6 +56,29 @@ class AgentLoop:
         self.context = ContextBuilder(
             workspace=self.workspace,
             system_prompt=config.agent.systemPrompt,
+        )
+        self.context_runtime = RuntimeContextAdapterV2(
+            workspace=self.workspace,
+            system_prompt=config.agent.systemPrompt,
+            config=RuntimeAdapterConfigV2(
+                mode=getattr(config.agent, "contextMode", "old"),
+                include_memory=getattr(config.agent, "enableMemory", True),
+                llm_summary_trigger_messages=getattr(
+                    config.agent,
+                    "v2SummaryTriggerMessages",
+                    20,
+                ),
+                llm_summary_keep_recent_messages=getattr(
+                    config.agent,
+                    "v2SummaryKeepRecentMessages",
+                    8,
+                ),
+                llm_summary_max_messages_to_summarize=getattr(
+                    config.agent,
+                    "v2SummaryMaxMessagesToSummarize",
+                    24,
+                ),
+            ),
         )
         self.context_policy = ContextPolicyDecider(
             default_history_limit=self.config.agent.maxHistory
@@ -356,9 +380,10 @@ class AgentLoop:
             metadata=session.metadata,
         )
 
-        messages = self.context.build_messages(
+        messages = await self.context_runtime.build_messages(
             history=history,
             current_message=inbound.content,
+            provider=self.provider,
             channel=inbound.channel,
             chat_id=inbound.chat_id,
             metadata=inbound.metadata,

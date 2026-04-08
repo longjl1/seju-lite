@@ -1,0 +1,76 @@
+{
+  "key": "tooling_session",
+  "messages": [
+    {
+      "role": "user",
+      "content": "我们最开始讨论的是 seju-lite 为什么不用 LangChain 当主 runtime，对吧？",
+      "timestamp": "2026-04-06T10:00:00"
+    },
+    {
+      "role": "assistant",
+      "content": "对。当时的结论是：seju-lite 更像“自定义 agent runtime + 局部使用 LangChain 组件”，优点是可控、轻、适合产品化，缺点是很多 runtime 细节要自己维护。",
+      "timestamp": "2026-04-06T10:00:14"
+    },
+    {
+      "role": "user",
+      "content": "后来我又问了 subagent 的事情。我在想，它到底是不是需要用 LangGraph 重写，还是其实优化现有 loop 就够了。",
+      "timestamp": "2026-04-06T10:08:00"
+    },
+    {
+      "role": "assistant",
+      "content": "结合你的目标，结论是现有 subagent 更适合保持轻量。它只需要拿到一个 task，在后台跑一个受控的 mini-loop，没必要一开始就变成完整的 graph workflow。",
+      "timestamp": "2026-04-06T10:08:19"
+    },
+    {
+      "role": "user",
+      "content": "然后我们去看了 deer-flow。我最关心的是它到底怎么处理短期历史和长期记忆。",
+      "timestamp": "2026-04-06T10:16:00"
+    },
+    {
+      "role": "assistant",
+      "content": "deer-flow 的关键点是两层：短期会话走 summarization middleware，保留最近消息并压缩更早内容；长期记忆则是结构化数据，不是整段历史原文回灌。",
+      "timestamp": "2026-04-06T10:16:24"
+    },
+    {
+      "role": "user",
+      "content": "我记得我们还专门追查了 HISTORY.md 到底有没有被直接注入，最后发现其实没有。",
+      "timestamp": "2026-04-06T10:25:00"
+    },
+    {
+      "role": "assistant",
+      "content": "是的。HISTORY.md 在 seju-lite 里更像归档日志，主要是写入，不是 prompt 注入源。真正参与 prompt 的是 MEMORY.md 和 session 的 recent history。",
+      "timestamp": "2026-04-06T10:25:18"
+    },
+    {
+      "role": "user",
+      "content": "之后我要求你做一个单独的 v2 文件夹，不要直接改旧逻辑，方便回撤。",
+      "timestamp": "2026-04-06T10:34:00"
+    },
+    {
+      "role": "assistant",
+      "content": "于是我们加了 `src/seju_lite/agent/v2`，里面有 structured memory、summarization middleware、context assembler 和 runtime adapter，但默认不强制替换生产路径。",
+      "timestamp": "2026-04-06T10:34:22"
+    },
+    {
+      "role": "user",
+      "content": "为了比较效果，我们又做了 compare-context-tokens 命令和 standalone provider usage script。",
+      "timestamp": "2026-04-06T10:42:00"
+    },
+    {
+      "role": "assistant",
+      "content": "对，而且后来还加了 force-history，避免 context policy 把问候类请求裁成 0 history，导致 old 和 v2 的测试不公平。",
+      "timestamp": "2026-04-06T10:42:19"
+    },
+    {
+      "role": "user",
+      "content": "现在我想要一套更长的 fixture，最好一组偏创作，一组偏工程，用来持续测试。",
+      "timestamp": "2026-04-06T10:50:00"
+    }
+  ],
+  "metadata": {
+    "case_type": "engineering_long_session",
+    "rag_index_path": "./workspace/rag/tooling_index"
+  },
+  "updated_at": "2026-04-06T10:50:00",
+  "last_consolidated": 0
+}
