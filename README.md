@@ -1,4 +1,4 @@
-# seju.neo
+# SEJU - Your Neo Personal Assistant
 
 [中文](README.zh-CN.md) | English | [Neo Design](README.contrast-test.md)
 
@@ -55,6 +55,10 @@ Practical interpretation:
 Inspired by `openclaw & nanobot`
 
 ## 🏗️ Architecture
+
+<p align="center">
+  <img src="assets/arch.svg" alt="arch diagram" length="1600" width="800"/>
+</p>
 
 Request lifecycle:
 
