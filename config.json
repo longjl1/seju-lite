@@ -28,9 +28,9 @@
     "kind": "deepseek",
     "apiKey": "${DEEPSEEK_API_KEY}",
     "apiBase": "https://api.deepseek.com",
-    "model": "deepseek-chat",
-    "temperature": 0.3,
-    "maxOutputTokens": 1200
+    "model": "deepseek-v4-pro",
+    "temperature": 1.0,
+    "maxOutputTokens": 2400
   },
   "channels": {
     "telegram": {
